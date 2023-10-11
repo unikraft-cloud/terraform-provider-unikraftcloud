@@ -11,17 +11,22 @@ import (
 )
 
 func TestAccInstanceResource(t *testing.T) {
+	// "golden" image, used exclusively for acceptance testing.
+	const tImg = "unikraft.io/acotten.unikraft.io/tf-acc-nginx/be23de32"
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: testAccInstanceResourceConfig("one"),
+				Config: testAccInstanceResourceConfig(tImg, 80),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("kraftcloud_instance.test", "configurable_attribute", "one"),
-					resource.TestCheckResourceAttr("kraftcloud_instance.test", "defaulted", "example value when not configured"),
-					resource.TestCheckResourceAttr("kraftcloud_instance.test", "id", "example-id"),
+					resource.TestCheckResourceAttrSet("kraftcloud_instance.test", "uuid"),
+					resource.TestCheckResourceAttr("kraftcloud_instance.test", "image", tImg),
+					resource.TestCheckResourceAttr("kraftcloud_instance.test", "port", "80"),
+					resource.TestCheckResourceAttr("kraftcloud_instance.test", "memory_mb", "128"),    // defaulted
+					resource.TestCheckResourceAttr("kraftcloud_instance.test", "internal_port", "80"), // defaulted
 				),
 			},
 			// ImportState testing
@@ -29,17 +34,16 @@ func TestAccInstanceResource(t *testing.T) {
 				ResourceName:      "kraftcloud_instance.test",
 				ImportState:       true,
 				ImportStateVerify: true,
-				// This is not normally necessary, but is here because this
-				// example code does not have an actual upstream service.
-				// Once the Read method is able to refresh information from
-				// the upstream service, this can be removed.
-				ImportStateVerifyIgnore: []string{"configurable_attribute", "defaulted"},
+				// FIXME(antoineco): ImportState still receives req.ID="id-attribute-not-set"
+				// despite this option, and despite the attribute having UseStateForUnknown
+				// set in the schema.
+				ImportStateVerifyIdentifierAttribute: "uuid",
 			},
 			// Update and Read testing
 			{
-				Config: testAccInstanceResourceConfig("two"),
+				Config: testAccInstanceResourceConfig(tImg, 81),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("kraftcloud_instance.test", "configurable_attribute", "two"),
+					resource.TestCheckResourceAttr("kraftcloud_instance.test", "port", "81"),
 				),
 			},
 			// Delete testing automatically occurs in TestCase
@@ -47,10 +51,11 @@ func TestAccInstanceResource(t *testing.T) {
 	})
 }
 
-func testAccInstanceResourceConfig(configurableAttribute string) string {
+func testAccInstanceResourceConfig(imageAttr string, portAttr uint16) string {
 	return fmt.Sprintf(`
 resource "kraftcloud_instance" "test" {
-  configurable_attribute = %[1]q
+  image = %[1]q
+  port  = %[2]d
 }
-`, configurableAttribute)
+`, imageAttr, portAttr)
 }

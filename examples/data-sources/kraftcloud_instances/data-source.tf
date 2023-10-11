@@ -1,3 +1,3 @@
 data "kraftcloud_instances" "example" {
-  configurable_attribute = "some-value"
+  state = ["running", "starting"]
 }

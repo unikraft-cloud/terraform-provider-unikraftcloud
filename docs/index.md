@@ -3,18 +3,19 @@
 page_title: "kraftcloud Provider"
 subcategory: ""
 description: |-
-  
+  The KraftCloud provider allows Terraform to manage unikernel instances on KraftCloud.
 ---
 
 # kraftcloud Provider
 
-
+The KraftCloud provider allows Terraform to manage unikernel instances on KraftCloud.
 
 ## Example Usage
 
 ```terraform
 provider "kraftcloud" {
-  # example configuration here
+  endpoint = "https://api.fra0.kraft.cloud/v1"
+  user     = "robot$myuser.unikraft.io.users.kraftcloud"
 }
 ```
 
@@ -23,4 +24,6 @@ provider "kraftcloud" {
 
 ### Optional
 
-- `endpoint` (String) Example provider attribute
+- `endpoint` (String) API endpoint
+- `token` (String, Sensitive) API token
+- `user` (String) API user

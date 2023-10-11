@@ -6,16 +6,18 @@ package provider
 import (
 	"context"
 	"fmt"
-	"net/http"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
-)
 
-// Ensure InstancesDataSource satisfies various datasource interfaces.
-var _ datasource.DataSource = &InstancesDataSource{}
+	"sdk.kraft.cloud/v0/instance"
+)
 
 func NewInstancesDataSource() datasource.DataSource {
 	return &InstancesDataSource{}
@@ -23,82 +25,112 @@ func NewInstancesDataSource() datasource.DataSource {
 
 // InstancesDataSource defines the data source implementation.
 type InstancesDataSource struct {
-	client *http.Client
+	client *instance.InstanceClient
 }
+
+// Ensure InstancesDataSource satisfies various datasource interfaces.
+var _ datasource.DataSource = &InstancesDataSource{}
 
 // InstancesDataSourceModel describes the data source data model.
 type InstancesDataSourceModel struct {
-	ConfigurableAttribute types.String `tfsdk:"configurable_attribute"`
-	ID                    types.String `tfsdk:"id"`
+	States types.Set `tfsdk:"states"`
+
+	UUIDs types.List `tfsdk:"uuids"`
 }
 
+// Metadata implements datasource.DataSource.
 func (d *InstancesDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_instances"
 }
 
+// Schema implements datasource.DataSource.
 func (d *InstancesDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "Example data source",
+		MarkdownDescription: "Provides UUIDs of existing KraftCloud instances.",
 
 		Attributes: map[string]schema.Attribute{
-			"configurable_attribute": schema.StringAttribute{
-				MarkdownDescription: "Example configurable attribute",
-				Optional:            true,
+			"states": schema.SetAttribute{
+				ElementType: types.StringType,
+				MarkdownDescription: "Filter instances based on their current " +
+					"[state](https://docs.kraft.cloud/002-rest-api-v1-instances.html#instance-states)",
+				Optional: true,
+				Validators: []validator.Set{
+					setvalidator.ValueStringsAre(
+						stringvalidator.OneOf(
+							"stopped",
+							"starting",
+							"running",
+							"draining",
+							"stopping",
+						),
+					),
+				},
 			},
-			"id": schema.StringAttribute{
-				MarkdownDescription: "Example identifier",
-				Computed:            true,
+			"uuids": schema.ListAttribute{
+				ElementType: types.StringType,
+				Computed:    true,
 			},
 		},
 	}
 }
 
+// Configure implements datasource.DataSource.
 func (d *InstancesDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
 	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
 		return
 	}
 
-	client, ok := req.ProviderData.(*http.Client)
-
+	client, ok := req.ProviderData.(*instance.InstanceClient)
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Data Source Configure Type",
-			fmt.Sprintf("Expected *http.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *instance.InstanceClient, got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
-
 		return
 	}
 
 	d.client = client
 }
 
+// Read implements datasource.DataSource.
 func (d *InstancesDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	var data InstancesDataSourceModel
 
 	// Read Terraform configuration data into the model
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
-
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// If applicable, this is a great opportunity to initialize any necessary
-	// provider client data and make a call using it.
-	// httpResp, err := d.client.Do(httpReq)
-	// if err != nil {
-	//     resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read example, got error: %s", err))
-	//     return
-	// }
+	stateVals := make([]types.String, 0, len(data.States.Elements()))
+	resp.Diagnostics.Append(data.States.ElementsAs(ctx, &stateVals, false)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	// FIXME(antoineco): filtering not implemented in SDK
+	states := make([]string, 0, len(stateVals))
+	for _, st := range stateVals {
+		states = append(states, st.ValueString())
+	}
 
-	// For the purposes of this example code, hardcoding a response value to
-	// save into the Terraform state.
-	data.ID = types.StringValue("example-id")
+	instances, err := d.client.ListInstances(ctx)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Client Error",
+			fmt.Sprintf("Failed to list instances, got error: %v", err),
+		)
+		return
+	}
 
-	// Write logs using the tflog package
-	// Documentation: https://terraform.io/plugin/log
-	tflog.Trace(ctx, "read a data source")
+	uuids := make([]attr.Value, 0, len(instances))
+	for _, ins := range instances {
+		uuids = append(uuids, types.StringValue(ins.UUID))
+	}
+	var diags diag.Diagnostics
+	data.UUIDs, diags = types.ListValue(types.StringType, uuids)
+	resp.Diagnostics.Append(diags...)
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)

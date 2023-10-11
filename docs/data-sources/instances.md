@@ -3,18 +3,18 @@
 page_title: "kraftcloud_instances Data Source - terraform-provider-kraftcloud"
 subcategory: ""
 description: |-
-  Example data source
+  Provides UUIDs of existing KraftCloud instances.
 ---
 
 # kraftcloud_instances (Data Source)
 
-Example data source
+Provides UUIDs of existing KraftCloud instances.
 
 ## Example Usage
 
 ```terraform
 data "kraftcloud_instances" "example" {
-  configurable_attribute = "some-value"
+  state = ["running", "starting"]
 }
 ```
 
@@ -23,8 +23,8 @@ data "kraftcloud_instances" "example" {
 
 ### Optional
 
-- `configurable_attribute` (String) Example configurable attribute
+- `state` (Set of String) Filter instances based on their current [state](https://docs.kraft.cloud/002-rest-api-v1-instances.html#instance-states)
 
 ### Read-Only
 
-- `id` (String) Example identifier
+- `uuids` (List of String)
