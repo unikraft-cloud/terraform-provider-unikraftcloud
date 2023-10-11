@@ -1,0 +1,66 @@
+# Terraform Provider release workflow
+name: Release
+
+# This GitHub Action creates a release when a tag that matches the pattern
+# "v*" (e.g. v0.1.0) is created.
+on:
+  push:
+    tags:
+      - 'v*'
+
+# Releases need permissions to read and write the repository contents.
+# GitHub considers creating releases and uploading assets as writing contents.
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Release provider artifacts
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Allow goreleaser to access older tag information.
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v4
+        with:
+          go-version-file: go.mod
+          cache: false
+
+      - name: Set Go variables
+        id: goenv
+        run: |
+          mod=$(go env GOMOD)
+          {
+            echo "cache=$(go env GOCACHE)"
+            echo "modcache=$(go env GOMODCACHE)"
+            echo "sum=${mod/%.mod/.sum}"
+          } >>"$GITHUB_OUTPUT"
+
+      - name: Go caches
+        uses: actions/cache@v3
+        with:
+          path: |
+            ${{ steps.goenv.outputs.cache }}
+            ${{ steps.goenv.outputs.modcache }}
+          key: release-${{ runner.os }}-go-${{ hashFiles(steps.goenv.outputs.sum) }}
+          restore-keys: |
+            release-${{ runner.os }}-go-
+
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@v6
+        id: import_gpg
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.PASSPHRASE }}
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v5
+        with:
+          args: release --clean
+        env:
+          # GitHub sets the GITHUB_TOKEN secret automatically.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}

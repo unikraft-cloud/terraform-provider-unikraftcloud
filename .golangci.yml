@@ -1,0 +1,6 @@
+linters:
+  enable:
+    - unparam
+    - misspell
+    - gofumpt
+    - stylecheck
