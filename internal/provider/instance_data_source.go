@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
-	"sdk.kraft.cloud/v0/instance"
+	"sdk.kraft.cloud/instance"
 )
 
 func NewInstanceDataSource() datasource.DataSource {

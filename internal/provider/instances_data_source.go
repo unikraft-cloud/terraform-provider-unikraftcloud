@@ -16,7 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
-	"sdk.kraft.cloud/v0/instance"
+	"sdk.kraft.cloud/instance"
 )
 
 func NewInstancesDataSource() datasource.DataSource {

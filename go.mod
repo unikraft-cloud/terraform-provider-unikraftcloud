@@ -2,7 +2,7 @@ module github.com/kraftcloud/terraform-provider-kraftcloud
 
 go 1.21
 
-require sdk.kraft.cloud v0.1.0
+require sdk.kraft.cloud v0.1.3-0.20231013153308-9ce80966351c
 
 require (
 	github.com/hashicorp/terraform-plugin-docs v0.16.0
