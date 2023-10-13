@@ -21,7 +21,7 @@ func NewInstanceDataSource() datasource.DataSource {
 
 // InstanceDataSource defines the data source implementation.
 type InstanceDataSource struct {
-	client *instance.InstanceClient
+	client instance.InstancesService
 }
 
 // Ensure InstanceDataSource satisfies various datasource interfaces.
@@ -127,11 +127,11 @@ func (d *InstanceDataSource) Configure(ctx context.Context, req datasource.Confi
 		return
 	}
 
-	client, ok := req.ProviderData.(*instance.InstanceClient)
+	client, ok := req.ProviderData.(instance.InstancesService)
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Data Source Configure Type",
-			fmt.Sprintf("Expected *instance.InstanceClient, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected instance.InstancesServices, got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 		return
 	}
@@ -149,7 +149,7 @@ func (d *InstanceDataSource) Read(ctx context.Context, req datasource.ReadReques
 		return
 	}
 
-	ins, err := d.client.InstanceStatus(ctx, data.UUID.ValueString())
+	ins, err := d.client.Status(ctx, data.UUID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Client Error",

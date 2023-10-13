@@ -33,7 +33,7 @@ func NewInstanceResource() resource.Resource {
 
 // InstanceResource defines the resource implementation.
 type InstanceResource struct {
-	client *instance.InstanceClient
+	client instance.InstancesService
 }
 
 // Ensure InstanceResource satisfies various resource interfaces.
@@ -180,11 +180,11 @@ func (r *InstanceResource) Configure(ctx context.Context, req resource.Configure
 		return
 	}
 
-	client, ok := req.ProviderData.(*instance.InstanceClient)
+	client, ok := req.ProviderData.(instance.InstancesService)
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *instance.InstanceClient, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected instance.InstancesServices, got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 		return
 	}
@@ -217,12 +217,16 @@ func (r *InstanceResource) Create(ctx context.Context, req resource.CreateReques
 		data.InternalPort = data.Port
 	}
 
-	in := instance.CreateInstancePayload{
-		Image:        data.Image.ValueString(),
-		Memory:       data.MemoryMB.ValueInt64(),
-		Port:         data.Port.ValueInt64(),
-		InternalPort: data.InternalPort.ValueInt64(),
-		Autostart:    data.Autostart.ValueBool(),
+	in := instance.CreateInstanceRequest{
+		Image:    data.Image.ValueString(),
+		MemoryMB: data.MemoryMB.ValueInt64(),
+		Services: []instance.CreateInstanceServicesRequest{
+			{
+				Port:         int(data.Port.ValueInt64()),
+				InternalPort: int(data.InternalPort.ValueInt64()),
+			},
+		},
+		Autostart: data.Autostart.ValueBool(),
 	}
 
 	argVals := make([]types.String, 0, len(data.Args.Elements()))
@@ -233,13 +237,13 @@ func (r *InstanceResource) Create(ctx context.Context, req resource.CreateReques
 	handlVals := make([]types.String, 0, len(data.Handlers.Elements()))
 	resp.Diagnostics.Append(data.Handlers.ElementsAs(ctx, &handlVals, false)...)
 	for _, v := range handlVals {
-		in.Handlers = append(in.Handlers, v.ValueString())
+		in.Services[0].Handlers = append(in.Services[0].Handlers, v.ValueString())
 	}
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	ins, err := r.client.CreateInstance(ctx, in)
+	ins, err := r.client.Create(ctx, in)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Client Error",
@@ -253,7 +257,7 @@ func (r *InstanceResource) Create(ctx context.Context, req resource.CreateReques
 	data.PrivateIP = types.StringValue(ins.PrivateIP)
 
 	// Not all attributes are returned by CreateInstance
-	ins, err = r.client.InstanceStatus(ctx, data.UUID.ValueString())
+	ins, err = r.client.Status(ctx, data.UUID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Client Error",
@@ -299,7 +303,7 @@ func (r *InstanceResource) Read(ctx context.Context, req resource.ReadRequest, r
 		return
 	}
 
-	ins, err := r.client.InstanceStatus(ctx, data.UUID.ValueString())
+	ins, err := r.client.Status(ctx, data.UUID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Client Error",
@@ -361,7 +365,7 @@ func (r *InstanceResource) Delete(ctx context.Context, req resource.DeleteReques
 		return
 	}
 
-	err := r.client.DeleteInstance(ctx, data.UUID.ValueString())
+	err := r.client.Delete(ctx, data.UUID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Client Error",

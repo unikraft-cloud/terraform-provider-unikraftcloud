@@ -14,8 +14,7 @@ The KraftCloud provider allows Terraform to manage unikernel instances on KraftC
 
 ```terraform
 provider "kraftcloud" {
-  endpoint = "https://api.fra0.kraft.cloud/v1"
-  user     = "robot$myuser.unikraft.io.users.kraftcloud"
+  metro = "fra0"
 }
 ```
 
@@ -24,6 +23,5 @@ provider "kraftcloud" {
 
 ### Optional
 
-- `endpoint` (String) API endpoint
+- `metro` (String) API metro
 - `token` (String, Sensitive) API token
-- `user` (String) API user

@@ -25,7 +25,7 @@ func NewInstancesDataSource() datasource.DataSource {
 
 // InstancesDataSource defines the data source implementation.
 type InstancesDataSource struct {
-	client *instance.InstanceClient
+	client instance.InstancesService
 }
 
 // Ensure InstancesDataSource satisfies various datasource interfaces.
@@ -82,11 +82,11 @@ func (d *InstancesDataSource) Configure(ctx context.Context, req datasource.Conf
 		return
 	}
 
-	client, ok := req.ProviderData.(*instance.InstanceClient)
+	client, ok := req.ProviderData.(instance.InstancesService)
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Data Source Configure Type",
-			fmt.Sprintf("Expected *instance.InstanceClient, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected instance.InstancesServices, got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 		return
 	}
@@ -112,10 +112,10 @@ func (d *InstancesDataSource) Read(ctx context.Context, req datasource.ReadReque
 	// FIXME(antoineco): filtering not implemented in SDK
 	states := make([]string, 0, len(stateVals))
 	for _, st := range stateVals {
-		states = append(states, st.ValueString())
+		states = append(states, st.ValueString()) //nolint:staticcheck
 	}
 
-	instances, err := d.client.ListInstances(ctx)
+	instances, err := d.client.List(ctx)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Client Error",

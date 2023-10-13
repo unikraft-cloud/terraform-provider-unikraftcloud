@@ -23,7 +23,7 @@ data "kraftcloud_instances" "example" {
 
 ### Optional
 
-- `state` (Set of String) Filter instances based on their current [state](https://docs.kraft.cloud/002-rest-api-v1-instances.html#instance-states)
+- `states` (Set of String) Filter instances based on their current [state](https://docs.kraft.cloud/002-rest-api-v1-instances.html#instance-states)
 
 ### Read-Only
 
