@@ -157,4 +157,5 @@ jobs:
       - run: go test -v -cover ./internal/provider/
         env:
           TF_ACC: '1'
+          KRAFTCLOUD_TOKEN: ${{ secrets.KRAFTCLOUD_TOKEN }}
         timeout-minutes: 10
