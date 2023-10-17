@@ -114,6 +114,7 @@ jobs:
 
     strategy:
       fail-fast: false
+      max-parallel: 1
       matrix:
         terraform:
           - '1.4.*'
