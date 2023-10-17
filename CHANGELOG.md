@@ -1,4 +1,4 @@
-## 0.1.0 (Unreleased)
+## 0.1.1 (Unreleased)
 
 BREAKING CHANGES:
 
@@ -9,3 +9,9 @@ FEATURES:
 ENHANCEMENTS:
 
 BUG FIXES:
+
+## 0.1.0 (October 16, 2023)
+
+NOTES:
+
+- Initial release.
