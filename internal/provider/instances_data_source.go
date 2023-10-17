@@ -104,17 +104,6 @@ func (d *InstancesDataSource) Read(ctx context.Context, req datasource.ReadReque
 		return
 	}
 
-	stateVals := make([]types.String, 0, len(data.States.Elements()))
-	resp.Diagnostics.Append(data.States.ElementsAs(ctx, &stateVals, false)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	// FIXME(antoineco): filtering not implemented in SDK
-	states := make([]string, 0, len(stateVals))
-	for _, st := range stateVals {
-		states = append(states, st.ValueString()) //nolint:staticcheck
-	}
-
 	instances, err := d.client.List(ctx)
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -122,6 +111,40 @@ func (d *InstancesDataSource) Read(ctx context.Context, req datasource.ReadReque
 			fmt.Sprintf("Failed to list instances, got error: %v", err),
 		)
 		return
+	}
+
+	// FIXME(antoineco): filtering not implemented in SDK.
+	// Implemented client side for the time being (expensive operation).
+	if len(data.States.Elements()) > 0 {
+		stateVals := make([]types.String, 0, len(data.States.Elements()))
+		resp.Diagnostics.Append(data.States.ElementsAs(ctx, &stateVals, false)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
+		filteredInstances := instances[:0]
+
+		for _, ins := range instances {
+			insStat, err := d.client.Status(ctx, ins.UUID)
+			if err != nil {
+				resp.Diagnostics.AddError(
+					"Client Error",
+					fmt.Sprintf("Failed to get status of instance %s, got error: %v", ins.UUID, err),
+				)
+				return
+			}
+
+			// the number of possible states is small enough that iterating
+			// them for every instance is reasonably cheap
+			for _, st := range stateVals {
+				if insStat.Status == st.ValueString() {
+					filteredInstances = append(filteredInstances, ins)
+					break
+				}
+			}
+		}
+
+		instances = filteredInstances
 	}
 
 	uuids := make([]attr.Value, 0, len(instances))

@@ -14,7 +14,7 @@ Provides status information about a KraftCloud instance.
 
 ```terraform
 data "kraftcloud_instance" "example" {
-  uuid = "00000000-0000-0000-0000-000000000000"
+  uuid = "550e8400-e29b-41d4-a716-446655440000"
 }
 ```
 

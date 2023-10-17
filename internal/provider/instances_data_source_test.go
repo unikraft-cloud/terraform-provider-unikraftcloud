@@ -45,20 +45,19 @@ func TestAccInstancesDataSource(t *testing.T) {
 		},
 	})
 
-	// FIXME(antoineco): filtering not implemented in SDK
-	//resource.Test(t, resource.TestCase{
-	//	PreCheck:                 func() { testAccPreCheck(t) },
-	//	ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-	//	Steps: []resource.TestStep{
-	//		// Read testing
-	//		{
-	//			Config: testAccInstancesDataSourceConfig(`["running", "starting"]`),
-	//			Check: resource.ComposeAggregateTestCheckFunc(
-	//				resource.TestCheckResourceAttr("data.kraftcloud_instances.test", "uuids.#", "0"),
-	//			),
-	//		},
-	//	},
-	//})
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Read testing
+			{
+				Config: testAccInstancesDataSourceConfig(`["running", "starting"]`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.kraftcloud_instances.test", "uuids.#", "0"),
+				),
+			},
+		},
+	})
 }
 
 func testAccInstancesDataSourceConfig(statesAttr string) string {
