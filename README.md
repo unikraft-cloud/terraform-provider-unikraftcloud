@@ -90,7 +90,8 @@ tool][tfplugindocs].
 
 To run the documentation generator, execute the `go generate` command. The output is written to the `docs/` directory.
 
-The generator uses the following data to populate the provider's documentation pages:
+The generator uses the templates from the `templates/` directory and the following data to populate the provider's
+documentation pages:
 
 - Examples inside the `examples/` directory
 - Schema information from the provider, resources, and data sources

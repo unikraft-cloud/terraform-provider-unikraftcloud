@@ -71,9 +71,7 @@ func (r *InstanceResource) Metadata(ctx context.Context, req resource.MetadataRe
 func (r *InstanceResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		Description: "Allows the creation of KraftCloud instances.",
-		MarkdownDescription: "Allows the creation of KraftCloud " +
-			"[instances](https://docs.kraft.cloud/002-rest-api-v1-instances.html).",
+		MarkdownDescription: "Allows the creation of KraftCloud instances.",
 
 		Attributes: map[string]schema.Attribute{
 			"image": schema.StringAttribute{

@@ -3,12 +3,12 @@
 page_title: "kraftcloud_instance Resource - terraform-provider-kraftcloud"
 subcategory: ""
 description: |-
-  Allows the creation of KraftCloud instances https://docs.kraft.cloud/002-rest-api-v1-instances.html.
+  Allows the creation of KraftCloud instances.
 ---
 
 # kraftcloud_instance (Resource)
 
-Allows the creation of KraftCloud [instances](https://docs.kraft.cloud/002-rest-api-v1-instances.html).
+Allows the creation of KraftCloud [instances][kc-instances].
 
 ## Example Usage
 
@@ -47,3 +47,13 @@ resource "kraftcloud_instance" "example" {
 - `service_group` (String)
 - `state` (String)
 - `uuid` (String) Unique identifier of the instance
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+terraform import kraftcloud_instance.example 550e8400-e29b-41d4-a716-446655440000
+```
+
+[kc-instances]: https://docs.kraft.cloud/002-rest-api-v1-instances.html

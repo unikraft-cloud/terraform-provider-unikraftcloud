@@ -53,7 +53,7 @@ func (p *KraftCloudProvider) Metadata(ctx context.Context, req provider.Metadata
 func (p *KraftCloudProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "The KraftCloud provider allows Terraform to manage unikernel instances on KraftCloud.",
+		MarkdownDescription: "Manage unikernel instances on KraftCloud.",
 
 		Attributes: map[string]schema.Attribute{
 			"metro": schema.StringAttribute{
