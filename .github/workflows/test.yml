@@ -150,7 +150,7 @@ jobs:
           restore-keys: |
             test-${{ runner.os }}-go-
 
-      - uses: hashicorp/setup-terraform@v2
+      - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ matrix.terraform }}
           terraform_wrapper: false
