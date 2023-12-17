@@ -24,7 +24,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
-	"sdk.kraft.cloud/instance"
+	"sdk.kraft.cloud/instances"
+	"sdk.kraft.cloud/services"
 )
 
 func NewInstanceResource() resource.Resource {
@@ -33,7 +34,7 @@ func NewInstanceResource() resource.Resource {
 
 // InstanceResource defines the resource implementation.
 type InstanceResource struct {
-	client instance.InstancesService
+	client instances.InstancesService
 }
 
 // Ensure InstanceResource satisfies various resource interfaces.
@@ -44,13 +45,13 @@ var (
 
 // InstanceResourceModel describes the resource data model.
 type InstanceResourceModel struct {
-	Image        types.String `tfsdk:"image"`
-	Args         types.List   `tfsdk:"args"`
-	MemoryMB     types.Int64  `tfsdk:"memory_mb"`
-	Port         types.Int64  `tfsdk:"port"`
-	InternalPort types.Int64  `tfsdk:"internal_port"`
-	Handlers     types.Set    `tfsdk:"handlers"`
-	Autostart    types.Bool   `tfsdk:"autostart"`
+	Image           types.String `tfsdk:"image"`
+	Args            types.List   `tfsdk:"args"`
+	MemoryMB        types.Int64  `tfsdk:"memory_mb"`
+	Port            types.Int64  `tfsdk:"port"`
+	DestinationPort types.Int64  `tfsdk:"destination_port"`
+	Handlers        types.Set    `tfsdk:"handlers"`
+	Autostart       types.Bool   `tfsdk:"autostart"`
 
 	UUID         types.String `tfsdk:"uuid"`
 	DNS          types.String `tfsdk:"dns"`
@@ -108,7 +109,7 @@ func (r *InstanceResource) Schema(ctx context.Context, req resource.SchemaReques
 					int64planmodifier.RequiresReplace(),
 				},
 			},
-			"internal_port": schema.Int64Attribute{
+			"destination_port": schema.Int64Attribute{
 				Optional: true,
 				Computed: true,
 				Validators: []validator.Int64{
@@ -178,11 +179,11 @@ func (r *InstanceResource) Configure(ctx context.Context, req resource.Configure
 		return
 	}
 
-	client, ok := req.ProviderData.(instance.InstancesService)
+	client, ok := req.ProviderData.(instances.InstancesService)
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected instance.InstancesServices, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected instances.InstancesServices, got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 		return
 	}
@@ -211,17 +212,17 @@ func (r *InstanceResource) Create(ctx context.Context, req resource.CreateReques
 	// TODO(antoineco): the SDK should be sending a null when this is unset,
 	// but currently sends 0 instead, which is invalid.
 	// Set a default client-side for now until this is addressed.
-	if data.InternalPort.IsUnknown() || data.InternalPort.IsNull() {
-		data.InternalPort = data.Port
+	if data.DestinationPort.IsUnknown() || data.DestinationPort.IsNull() {
+		data.DestinationPort = data.Port
 	}
 
-	in := instance.CreateInstanceRequest{
+	in := instances.CreateInstanceRequest{
 		Image:    data.Image.ValueString(),
 		MemoryMB: data.MemoryMB.ValueInt64(),
-		Services: []instance.CreateInstanceServicesRequest{
+		Services: []services.Service{
 			{
-				Port:         int(data.Port.ValueInt64()),
-				InternalPort: int(data.InternalPort.ValueInt64()),
+				Port:            int(data.Port.ValueInt64()),
+				DestinationPort: int(data.DestinationPort.ValueInt64()),
 			},
 		},
 		Autostart: data.Autostart.ValueBool(),
@@ -235,7 +236,7 @@ func (r *InstanceResource) Create(ctx context.Context, req resource.CreateReques
 	handlVals := make([]types.String, 0, len(data.Handlers.Elements()))
 	resp.Diagnostics.Append(data.Handlers.ElementsAs(ctx, &handlVals, false)...)
 	for _, v := range handlVals {
-		in.Services[0].Handlers = append(in.Services[0].Handlers, v.ValueString())
+		in.Services[0].Handlers = append(in.Services[0].Handlers, services.Handler(v.ValueString()))
 	}
 	if resp.Diagnostics.HasError() {
 		return

@@ -26,8 +26,8 @@ func TestAccInstanceResource(t *testing.T) {
 					resource.TestCheckResourceAttrSet("kraftcloud_instance.test", "uuid"),
 					resource.TestCheckResourceAttr("kraftcloud_instance.test", "image", tImg),
 					resource.TestCheckResourceAttr("kraftcloud_instance.test", "port", "80"),
-					resource.TestCheckResourceAttr("kraftcloud_instance.test", "memory_mb", "128"),    // defaulted
-					resource.TestCheckResourceAttr("kraftcloud_instance.test", "internal_port", "80"), // defaulted
+					resource.TestCheckResourceAttr("kraftcloud_instance.test", "memory_mb", "128"),       // defaulted
+					resource.TestCheckResourceAttr("kraftcloud_instance.test", "destination_port", "80"), // defaulted
 				),
 			},
 			// ImportState testing
@@ -39,7 +39,7 @@ func TestAccInstanceResource(t *testing.T) {
 				ImportStateIdFunc:                    instanceUUID("kraftcloud_instance.test"),
 				ImportStateVerifyIgnore: []string{
 					// not returned for instances in "stopped" state
-					"port", "internal_port", "handlers",
+					"port", "destination_port", "handlers",
 					// differs from given value if the image references a tag (vs. a digest)
 					"image",
 				},

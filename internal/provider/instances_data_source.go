@@ -16,7 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
-	"sdk.kraft.cloud/instance"
+	"sdk.kraft.cloud/instances"
 )
 
 func NewInstancesDataSource() datasource.DataSource {
@@ -25,7 +25,7 @@ func NewInstancesDataSource() datasource.DataSource {
 
 // InstancesDataSource defines the data source implementation.
 type InstancesDataSource struct {
-	client instance.InstancesService
+	client instances.InstancesService
 }
 
 // Ensure InstancesDataSource satisfies various datasource interfaces.
@@ -82,11 +82,11 @@ func (d *InstancesDataSource) Configure(ctx context.Context, req datasource.Conf
 		return
 	}
 
-	client, ok := req.ProviderData.(instance.InstancesService)
+	client, ok := req.ProviderData.(instances.InstancesService)
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Data Source Configure Type",
-			fmt.Sprintf("Expected instance.InstancesServices, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected instances.InstancesServices, got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 		return
 	}

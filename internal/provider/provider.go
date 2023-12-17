@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	kraftcloud "sdk.kraft.cloud"
-	"sdk.kraft.cloud/instance"
+	"sdk.kraft.cloud/client"
 )
 
 func New(version string) func() provider.Provider {
@@ -109,7 +109,7 @@ func (p *KraftCloudProvider) Configure(ctx context.Context, req provider.Configu
 
 	metro := os.Getenv("KRAFTCLOUD_METRO")
 	if metro == "" {
-		metro = kraftcloud.DefaultMetro
+		metro = client.DefaultMetro
 	}
 	if !data.Metro.IsNull() {
 		metro = data.Metro.ValueString()
@@ -146,13 +146,13 @@ func (p *KraftCloudProvider) Configure(ctx context.Context, req provider.Configu
 	}
 
 	// Client configuration for data sources and resources
-	client := instance.NewInstancesClient(
+	client := kraftcloud.NewClient(
 		kraftcloud.WithDefaultMetro(metro),
 		kraftcloud.WithToken(token),
 	)
 
-	resp.DataSourceData = client
-	resp.ResourceData = client
+	resp.DataSourceData = client.Instances()
+	resp.ResourceData = client.Instances()
 }
 
 // Resources describes the provider data model.

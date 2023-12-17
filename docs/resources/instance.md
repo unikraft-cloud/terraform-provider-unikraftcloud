@@ -33,8 +33,8 @@ resource "kraftcloud_instance" "example" {
 
 - `args` (List of String)
 - `autostart` (Boolean)
+- `destination_port` (Number)
 - `handlers` (Set of String)
-- `internal_port` (Number)
 - `memory_mb` (Number)
 
 ### Read-Only
