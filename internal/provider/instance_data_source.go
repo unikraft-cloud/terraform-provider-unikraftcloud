@@ -31,24 +31,19 @@ var _ datasource.DataSource = &InstanceDataSource{}
 type InstanceDataSourceModel struct {
 	UUID types.String `tfsdk:"uuid"`
 
-	DNS               types.String     `tfsdk:"dns"`
-	PrivateIP         types.String     `tfsdk:"private_ip"`
-	State             types.String     `tfsdk:"state"`
-	CreatedAt         types.String     `tfsdk:"created_at"`
-	Image             types.String     `tfsdk:"image"`
-	MemoryMB          types.Int64      `tfsdk:"memory_mb"`
-	Args              types.List       `tfsdk:"args"`
-	Env               types.Map        `tfsdk:"env"`
-	ServiceGroup      types.String     `tfsdk:"service_group"`
-	NetworkInterfaces []netwIfaceModel `tfsdk:"network_interfaces"`
-	BootTimeUS        types.Int64      `tfsdk:"boot_time_us"`
-}
-
-// netwIfaceModel describes the data model for an instance's network interface.
-type netwIfaceModel struct {
-	UUID      types.String `tfsdk:"uuid"`
-	PrivateIP types.String `tfsdk:"private_ip"`
-	MAC       types.String `tfsdk:"mac"`
+	Name              types.String `tfsdk:"name"`
+	FQDN              types.String `tfsdk:"fqdn"`
+	PrivateIP         types.String `tfsdk:"private_ip"`
+	PrivateFQDN       types.String `tfsdk:"private_fqdn"`
+	State             types.String `tfsdk:"state"`
+	CreatedAt         types.String `tfsdk:"created_at"`
+	Image             types.String `tfsdk:"image"`
+	MemoryMB          types.Int64  `tfsdk:"memory_mb"`
+	Args              types.List   `tfsdk:"args"`
+	Env               types.Map    `tfsdk:"env"`
+	ServiceGroup      *svcGrpModel `tfsdk:"service_group"`
+	NetworkInterfaces types.List   `tfsdk:"network_interfaces"`
+	BootTimeUS        types.Int64  `tfsdk:"boot_time_us"`
 }
 
 // Metadata implements datasource.DataSource.
@@ -60,7 +55,7 @@ func (d *InstanceDataSource) Metadata(ctx context.Context, req datasource.Metada
 func (d *InstanceDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "Provides status information about a KraftCloud instance.",
+		MarkdownDescription: "Provides state information about a KraftCloud instance.",
 
 		Attributes: map[string]schema.Attribute{
 			"uuid": schema.StringAttribute{
@@ -68,10 +63,16 @@ func (d *InstanceDataSource) Schema(ctx context.Context, req datasource.SchemaRe
 				MarkdownDescription: "Unique identifier of the " +
 					"[instance](https://docs.kraft.cloud/002-rest-api-v1-instances.html)",
 			},
-			"dns": schema.StringAttribute{
+			"name": schema.StringAttribute{
+				Computed: true,
+			},
+			"fqdn": schema.StringAttribute{
 				Computed: true,
 			},
 			"private_ip": schema.StringAttribute{
+				Computed: true,
+			},
+			"private_fqdn": schema.StringAttribute{
 				Computed: true,
 			},
 			"state": schema.StringAttribute{
@@ -94,11 +95,42 @@ func (d *InstanceDataSource) Schema(ctx context.Context, req datasource.SchemaRe
 				ElementType: types.StringType,
 				Computed:    true,
 			},
+			"service_group": schema.SingleNestedAttribute{
+				Computed: true,
+				Attributes: map[string]schema.Attribute{
+					"uuid": schema.StringAttribute{
+						Computed: true,
+					},
+					"name": schema.StringAttribute{
+						Computed: true,
+					},
+					"services": schema.ListNestedAttribute{
+						Computed: true,
+						NestedObject: schema.NestedAttributeObject{
+							Attributes: map[string]schema.Attribute{
+								"port": schema.Int64Attribute{
+									Computed: true,
+								},
+								"destination_port": schema.Int64Attribute{
+									Computed: true,
+								},
+								"handlers": schema.SetAttribute{
+									ElementType: types.StringType,
+									Computed:    true,
+								},
+							},
+						},
+					},
+				},
+			},
 			"network_interfaces": schema.ListNestedAttribute{
 				Computed: true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"uuid": schema.StringAttribute{
+							Computed: true,
+						},
+						"name": schema.StringAttribute{
 							Computed: true,
 						},
 						"private_ip": schema.StringAttribute{
@@ -109,9 +141,6 @@ func (d *InstanceDataSource) Schema(ctx context.Context, req datasource.SchemaRe
 						},
 					},
 				},
-			},
-			"service_group": schema.StringAttribute{
-				Computed: true,
 			},
 			"boot_time_us": schema.Int64Attribute{
 				Computed: true,
@@ -149,24 +178,25 @@ func (d *InstanceDataSource) Read(ctx context.Context, req datasource.ReadReques
 		return
 	}
 
-	ins, err := d.client.Status(ctx, data.UUID.ValueString())
+	ins, err := d.client.GetByUUID(ctx, data.UUID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Client Error",
-			fmt.Sprintf("Failed to get instance status, got error: %v", err),
+			fmt.Sprintf("Failed to get instance state, got error: %v", err),
 		)
 		return
 	}
 
 	var diags diag.Diagnostics
 
-	data.DNS = types.StringValue(ins.DNS)
+	data.Name = types.StringValue(ins.Name)
+	data.FQDN = types.StringValue(ins.FQDN)
 	data.PrivateIP = types.StringValue(ins.PrivateIP)
-	data.State = types.StringValue(ins.Status)
+	data.PrivateFQDN = types.StringValue(ins.PrivateFQDN)
+	data.State = types.StringValue(ins.State)
 	data.CreatedAt = types.StringValue(ins.CreatedAt)
 	data.Image = types.StringValue(ins.Image)
 	data.MemoryMB = types.Int64Value(int64(ins.MemoryMB))
-	data.ServiceGroup = types.StringValue(ins.ServiceGroup)
 	data.BootTimeUS = types.Int64Value(ins.BootTimeUS)
 
 	data.Args, diags = types.ListValueFrom(ctx, types.StringType, ins.Args)
@@ -175,13 +205,29 @@ func (d *InstanceDataSource) Read(ctx context.Context, req datasource.ReadReques
 	data.Env, diags = types.MapValueFrom(ctx, types.StringType, ins.Env)
 	resp.Diagnostics.Append(diags...)
 
-	for _, net := range ins.NetworkInterfaces {
-		data.NetworkInterfaces = append(data.NetworkInterfaces, netwIfaceModel{
-			UUID:      types.StringValue(net.UUID),
-			PrivateIP: types.StringValue(net.PrivateIP),
-			MAC:       types.StringValue(net.MAC),
-		})
+	data.ServiceGroup = &svcGrpModel{
+		UUID:     types.StringValue(ins.ServiceGroup.UUID),
+		Name:     types.StringValue(ins.ServiceGroup.Name),
+		Services: make([]svcModel, len(ins.ServiceGroup.Services)),
 	}
+	for i, svc := range ins.ServiceGroup.Services {
+		data.ServiceGroup.Services[i] = svcModel{
+			Port:            types.Int64Value(int64(svc.Port)),
+			DestinationPort: types.Int64Value(int64(svc.DestinationPort)),
+		}
+		data.ServiceGroup.Services[i].Handlers, diags = types.SetValueFrom(ctx, types.StringType, svc.Handlers)
+		resp.Diagnostics.Append(diags...)
+	}
+
+	netwIfaces := make([]netwIfaceModel, len(ins.NetworkInterfaces))
+	for i, net := range ins.NetworkInterfaces {
+		netwIfaces[i].UUID = types.StringValue(net.UUID)
+		netwIfaces[i].Name = types.StringValue(net.Name)
+		netwIfaces[i].PrivateIP = types.StringValue(net.PrivateIP)
+		netwIfaces[i].MAC = types.StringValue(net.MAC)
+	}
+	data.NetworkInterfaces, diags = types.ListValueFrom(ctx, netwIfaceModelType, netwIfaces)
+	resp.Diagnostics.Append(diags...)
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)

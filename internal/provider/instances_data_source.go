@@ -125,11 +125,11 @@ func (d *InstancesDataSource) Read(ctx context.Context, req datasource.ReadReque
 		filteredInstances := instances[:0]
 
 		for _, ins := range instances {
-			insStat, err := d.client.Status(ctx, ins.UUID)
+			insStat, err := d.client.GetByUUID(ctx, ins.UUID)
 			if err != nil {
 				resp.Diagnostics.AddError(
 					"Client Error",
-					fmt.Sprintf("Failed to get status of instance %s, got error: %v", ins.UUID, err),
+					fmt.Sprintf("Failed to get state of instance %s, got error: %v", ins.UUID, err),
 				)
 				return
 			}
@@ -137,7 +137,7 @@ func (d *InstancesDataSource) Read(ctx context.Context, req datasource.ReadReque
 			// the number of possible states is small enough that iterating
 			// them for every instance is reasonably cheap
 			for _, st := range stateVals {
-				if insStat.Status == st.ValueString() {
+				if insStat.State == st.ValueString() {
 					filteredInstances = append(filteredInstances, ins)
 					break
 				}

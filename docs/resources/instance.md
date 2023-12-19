@@ -14,10 +14,17 @@ Allows the creation of KraftCloud [instances][kc-instances].
 
 ```terraform
 resource "kraftcloud_instance" "example" {
-  image     = "unikraft.io/myuser.unikraft.io/myapp/latest"
+  image     = "myuser.unikraft.io/myapp:latest"
   memory_mb = 64
-  port      = 8080
   autostart = true
+  service_group = {
+    services = [
+      {
+        port    = 80
+        handler = ["http"]
+      }
+    ]
+  }
 }
 ```
 
@@ -27,26 +34,62 @@ resource "kraftcloud_instance" "example" {
 ### Required
 
 - `image` (String)
-- `port` (Number)
+- `service_group` (Attributes) (see [below for nested schema](#nestedatt--service_group))
 
 ### Optional
 
 - `args` (List of String)
 - `autostart` (Boolean)
-- `destination_port` (Number)
-- `handlers` (Set of String)
 - `memory_mb` (Number)
 
 ### Read-Only
 
 - `boot_time_us` (Number)
 - `created_at` (String)
-- `dns` (String)
 - `env` (Map of String)
+- `fqdn` (String)
+- `name` (String)
+- `network_interfaces` (Attributes List) (see [below for nested schema](#nestedatt--network_interfaces))
+- `private_fqdn` (String)
 - `private_ip` (String)
-- `service_group` (String)
 - `state` (String)
 - `uuid` (String) Unique identifier of the instance
+
+<a id="nestedatt--service_group"></a>
+### Nested Schema for `service_group`
+
+Required:
+
+- `services` (Attributes List) (see [below for nested schema](#nestedatt--service_group--services))
+
+Read-Only:
+
+- `name` (String)
+- `uuid` (String)
+
+<a id="nestedatt--service_group--services"></a>
+### Nested Schema for `service_group.services`
+
+Required:
+
+- `port` (Number)
+
+Optional:
+
+- `destination_port` (Number)
+- `handlers` (Set of String)
+
+
+
+<a id="nestedatt--network_interfaces"></a>
+### Nested Schema for `network_interfaces`
+
+Read-Only:
+
+- `mac` (String)
+- `name` (String)
+- `private_ip` (String)
+- `uuid` (String)
 
 ## Import
 

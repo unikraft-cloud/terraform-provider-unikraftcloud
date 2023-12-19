@@ -1,6 +1,13 @@
 resource "kraftcloud_instance" "example" {
-  image     = "unikraft.io/myuser.unikraft.io/myapp/latest"
+  image     = "myuser.unikraft.io/myapp:latest"
   memory_mb = 64
-  port      = 8080
   autostart = true
+  service_group = {
+    services = [
+      {
+        port    = 80
+        handler = ["http"]
+      }
+    ]
+  }
 }

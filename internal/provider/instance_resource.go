@@ -9,7 +9,6 @@ import (
 	"math"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
-	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -18,7 +17,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -45,22 +43,22 @@ var (
 
 // InstanceResourceModel describes the resource data model.
 type InstanceResourceModel struct {
-	Image           types.String `tfsdk:"image"`
-	Args            types.List   `tfsdk:"args"`
-	MemoryMB        types.Int64  `tfsdk:"memory_mb"`
-	Port            types.Int64  `tfsdk:"port"`
-	DestinationPort types.Int64  `tfsdk:"destination_port"`
-	Handlers        types.Set    `tfsdk:"handlers"`
-	Autostart       types.Bool   `tfsdk:"autostart"`
+	Image     types.String `tfsdk:"image"`
+	Args      types.List   `tfsdk:"args"`
+	MemoryMB  types.Int64  `tfsdk:"memory_mb"`
+	Autostart types.Bool   `tfsdk:"autostart"`
 
-	UUID         types.String `tfsdk:"uuid"`
-	DNS          types.String `tfsdk:"dns"`
-	PrivateIP    types.String `tfsdk:"private_ip"`
-	State        types.String `tfsdk:"state"`
-	CreatedAt    types.String `tfsdk:"created_at"`
-	Env          types.Map    `tfsdk:"env"`
-	ServiceGroup types.String `tfsdk:"service_group"`
-	BootTimeUS   types.Int64  `tfsdk:"boot_time_us"`
+	UUID              types.String `tfsdk:"uuid"`
+	Name              types.String `tfsdk:"name"`
+	FQDN              types.String `tfsdk:"fqdn"`
+	PrivateIP         types.String `tfsdk:"private_ip"`
+	PrivateFQDN       types.String `tfsdk:"private_fqdn"`
+	State             types.String `tfsdk:"state"`
+	CreatedAt         types.String `tfsdk:"created_at"`
+	Env               types.Map    `tfsdk:"env"`
+	ServiceGroup      *svcGrpModel `tfsdk:"service_group"`
+	NetworkInterfaces types.List   `tfsdk:"network_interfaces"`
+	BootTimeUS        types.Int64  `tfsdk:"boot_time_us"`
 }
 
 // Metadata implements resource.Resource.
@@ -100,38 +98,6 @@ func (r *InstanceResource) Schema(ctx context.Context, req resource.SchemaReques
 					int64planmodifier.UseStateForUnknown(),
 				},
 			},
-			"port": schema.Int64Attribute{
-				Required: true,
-				Validators: []validator.Int64{
-					int64validator.Between(1, math.MaxUint16),
-				},
-				PlanModifiers: []planmodifier.Int64{
-					int64planmodifier.RequiresReplace(),
-				},
-			},
-			"destination_port": schema.Int64Attribute{
-				Optional: true,
-				Computed: true,
-				Validators: []validator.Int64{
-					int64validator.Between(1, math.MaxUint16),
-				},
-				PlanModifiers: []planmodifier.Int64{
-					int64planmodifier.RequiresReplaceIfConfigured(),
-					int64planmodifier.UseStateForUnknown(),
-				},
-			},
-			"handlers": schema.SetAttribute{
-				ElementType: types.StringType,
-				Optional:    true,
-				Computed:    true,
-				Default: setdefault.StaticValue(types.SetValueMust(types.StringType, []attr.Value{
-					types.StringValue("tls"),
-				})),
-				PlanModifiers: []planmodifier.Set{
-					setplanmodifier.RequiresReplaceIfConfigured(),
-					setplanmodifier.UseStateForUnknown(),
-				},
-			},
 			"autostart": schema.BoolAttribute{
 				Optional: true,
 				PlanModifiers: []planmodifier.Bool{
@@ -146,10 +112,16 @@ func (r *InstanceResource) Schema(ctx context.Context, req resource.SchemaReques
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
-			"dns": schema.StringAttribute{
+			"name": schema.StringAttribute{
+				Computed: true,
+			},
+			"fqdn": schema.StringAttribute{
 				Computed: true,
 			},
 			"private_ip": schema.StringAttribute{
+				Computed: true,
+			},
+			"private_fqdn": schema.StringAttribute{
 				Computed: true,
 			},
 			"state": schema.StringAttribute{
@@ -162,8 +134,71 @@ func (r *InstanceResource) Schema(ctx context.Context, req resource.SchemaReques
 				ElementType: types.StringType,
 				Computed:    true,
 			},
-			"service_group": schema.StringAttribute{
+			"service_group": schema.SingleNestedAttribute{
+				Required: true,
+				Attributes: map[string]schema.Attribute{
+					"uuid": schema.StringAttribute{
+						Computed: true,
+					},
+					"name": schema.StringAttribute{
+						Computed: true,
+					},
+					"services": schema.ListNestedAttribute{
+						Required: true,
+						NestedObject: schema.NestedAttributeObject{
+							Attributes: map[string]schema.Attribute{
+								"port": schema.Int64Attribute{
+									Required: true,
+									Validators: []validator.Int64{
+										int64validator.Between(1, math.MaxUint16),
+									},
+									PlanModifiers: []planmodifier.Int64{
+										int64planmodifier.RequiresReplace(),
+									},
+								},
+								"destination_port": schema.Int64Attribute{
+									Optional: true,
+									Computed: true,
+									Validators: []validator.Int64{
+										int64validator.Between(1, math.MaxUint16),
+									},
+									PlanModifiers: []planmodifier.Int64{
+										int64planmodifier.RequiresReplaceIfConfigured(),
+										int64planmodifier.UseStateForUnknown(),
+									},
+								},
+								"handlers": schema.SetAttribute{
+									ElementType: types.StringType,
+									Optional:    true,
+									Computed:    true,
+									PlanModifiers: []planmodifier.Set{
+										setplanmodifier.RequiresReplaceIfConfigured(),
+										setplanmodifier.UseStateForUnknown(),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			"network_interfaces": schema.ListNestedAttribute{
 				Computed: true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"uuid": schema.StringAttribute{
+							Computed: true,
+						},
+						"name": schema.StringAttribute{
+							Computed: true,
+						},
+						"private_ip": schema.StringAttribute{
+							Computed: true,
+						},
+						"mac": schema.StringAttribute{
+							Computed: true,
+						},
+					},
+				},
 			},
 			"boot_time_us": schema.Int64Attribute{
 				Computed: true,
@@ -204,26 +239,15 @@ func (r *InstanceResource) Create(ctx context.Context, req resource.CreateReques
 	// TODO(antoineco): the SDK should be sending a null when this is unset,
 	// but currently sends 0 instead, which is invalid.
 	// Set a default client-side for now until this is addressed.
-	// Default: int64default.StaticInt64(128)
 	if data.MemoryMB.IsUnknown() || data.MemoryMB.IsNull() {
 		data.MemoryMB = types.Int64Value(128)
-	}
-
-	// TODO(antoineco): the SDK should be sending a null when this is unset,
-	// but currently sends 0 instead, which is invalid.
-	// Set a default client-side for now until this is addressed.
-	if data.DestinationPort.IsUnknown() || data.DestinationPort.IsNull() {
-		data.DestinationPort = data.Port
 	}
 
 	in := instances.CreateInstanceRequest{
 		Image:    data.Image.ValueString(),
 		MemoryMB: data.MemoryMB.ValueInt64(),
-		Services: []services.Service{
-			{
-				Port:            int(data.Port.ValueInt64()),
-				DestinationPort: int(data.DestinationPort.ValueInt64()),
-			},
+		ServiceGroup: instances.CreateInstanceServiceGroupRequest{
+			Services: make([]services.Service, len(data.ServiceGroup.Services)),
 		},
 		Autostart: data.Autostart.ValueBool(),
 	}
@@ -233,11 +257,28 @@ func (r *InstanceResource) Create(ctx context.Context, req resource.CreateReques
 	for _, v := range argVals {
 		in.Args = append(in.Args, v.ValueString())
 	}
-	handlVals := make([]types.String, 0, len(data.Handlers.Elements()))
-	resp.Diagnostics.Append(data.Handlers.ElementsAs(ctx, &handlVals, false)...)
-	for _, v := range handlVals {
-		in.Services[0].Handlers = append(in.Services[0].Handlers, services.Handler(v.ValueString()))
+
+	for i, svc := range data.ServiceGroup.Services {
+		in.ServiceGroup.Services[i].Port = int(svc.Port.ValueInt64())
+
+		in.ServiceGroup.Services[i].DestinationPort = int(svc.DestinationPort.ValueInt64())
+		// TODO(antoineco): the SDK should be sending a null when this is unset,
+		// but currently sends 0 instead, which is invalid.
+		// Set a default client-side for now until this is addressed.
+		if svc.DestinationPort.IsUnknown() || svc.DestinationPort.IsNull() {
+			data.ServiceGroup.Services[i].DestinationPort = svc.Port
+			in.ServiceGroup.Services[i].DestinationPort = int(svc.Port.ValueInt64())
+		}
+
+		if !svc.Handlers.IsUnknown() {
+			handlVals := make([]types.String, 0, len(svc.Handlers.Elements()))
+			resp.Diagnostics.Append(svc.Handlers.ElementsAs(ctx, &handlVals, false)...)
+			for _, v := range handlVals {
+				in.ServiceGroup.Services[i].Handlers = append(in.ServiceGroup.Services[i].Handlers, services.Handler(v.ValueString()))
+			}
+		}
 	}
+
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -252,15 +293,17 @@ func (r *InstanceResource) Create(ctx context.Context, req resource.CreateReques
 	}
 
 	data.UUID = types.StringValue(ins.UUID)
-	data.DNS = types.StringValue(ins.DNS)
+	data.Name = types.StringValue(ins.Name)
+	data.FQDN = types.StringValue(ins.FQDN)
 	data.PrivateIP = types.StringValue(ins.PrivateIP)
+	data.PrivateFQDN = types.StringValue(ins.PrivateFQDN)
 
 	// Not all attributes are returned by CreateInstance
-	ins, err = r.client.Status(ctx, data.UUID.ValueString())
+	ins, err = r.client.GetByUUID(ctx, data.UUID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Client Error",
-			fmt.Sprintf("Failed to get instance status, got error: %v", err),
+			fmt.Sprintf("Failed to get instance state, got error: %v", err),
 		)
 		return
 	}
@@ -274,18 +317,30 @@ func (r *InstanceResource) Create(ctx context.Context, req resource.CreateReques
 	//
 	//   Error: Provider produced inconsistent result after apply
 	//   When applying changes to kraftcloud_instance.xyz, provider produced an unexpected new value: .image:
-	//     was cty.StringVal("myimage/latest"), but now cty.StringVal("myimage/18a381f0062...").
+	//     was cty.StringVal("myimage:latest"), but now cty.StringVal("myimage@sha256:18a381f0062...").
 	//
-	data.State = types.StringValue(ins.Status)
+	data.State = types.StringValue(ins.State)
 	data.CreatedAt = types.StringValue(ins.CreatedAt)
 	data.MemoryMB = types.Int64Value(int64(ins.MemoryMB))
-	data.ServiceGroup = types.StringValue(ins.ServiceGroup)
 	data.BootTimeUS = types.Int64Value(ins.BootTimeUS)
 
 	data.Args, diags = types.ListValueFrom(ctx, types.StringType, ins.Args)
 	resp.Diagnostics.Append(diags...)
 
 	data.Env, diags = types.MapValueFrom(ctx, types.StringType, ins.Env)
+	resp.Diagnostics.Append(diags...)
+
+	data.ServiceGroup.UUID = types.StringValue(ins.ServiceGroup.UUID)
+	data.ServiceGroup.Name = types.StringValue(ins.ServiceGroup.Name)
+
+	netwIfaces := make([]netwIfaceModel, len(ins.NetworkInterfaces))
+	for i, net := range ins.NetworkInterfaces {
+		netwIfaces[i].UUID = types.StringValue(net.UUID)
+		netwIfaces[i].Name = types.StringValue(net.Name)
+		netwIfaces[i].PrivateIP = types.StringValue(net.PrivateIP)
+		netwIfaces[i].MAC = types.StringValue(net.MAC)
+	}
+	data.NetworkInterfaces, diags = types.ListValueFrom(ctx, netwIfaceModelType, netwIfaces)
 	resp.Diagnostics.Append(diags...)
 
 	// Save data into Terraform state
@@ -302,11 +357,11 @@ func (r *InstanceResource) Read(ctx context.Context, req resource.ReadRequest, r
 		return
 	}
 
-	ins, err := r.client.Status(ctx, data.UUID.ValueString())
+	ins, err := r.client.GetByUUID(ctx, data.UUID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Client Error",
-			fmt.Sprintf("Failed to get instance status, got error: %v", err),
+			fmt.Sprintf("Failed to get instance state, got error: %v", err),
 		)
 		return
 	}
@@ -320,25 +375,42 @@ func (r *InstanceResource) Read(ctx context.Context, req resource.ReadRequest, r
 	//
 	//   Error: Provider produced inconsistent result after apply
 	//   When applying changes to kraftcloud_instance.xyz, provider produced an unexpected new value: .image:
-	//     was cty.StringVal("myimage/latest"), but now cty.StringVal("myimage/18a381f0062...").
+	//     was cty.StringVal("myimage:latest"), but now cty.StringVal("myimage@sha256:18a381f0062...").
 	//
 	// However, we must still ensure that the Image attribute is populated by
 	// "terraform import".
 	if data.Image.IsNull() {
 		data.Image = types.StringValue(ins.Image)
 	}
-	data.DNS = types.StringValue(ins.DNS)
+	data.Name = types.StringValue(ins.Name)
+	data.FQDN = types.StringValue(ins.FQDN)
 	data.PrivateIP = types.StringValue(ins.PrivateIP)
-	data.State = types.StringValue(ins.Status)
+	data.PrivateFQDN = types.StringValue(ins.PrivateFQDN)
+	data.State = types.StringValue(ins.State)
 	data.CreatedAt = types.StringValue(ins.CreatedAt)
 	data.MemoryMB = types.Int64Value(int64(ins.MemoryMB))
-	data.ServiceGroup = types.StringValue(ins.ServiceGroup)
 	data.BootTimeUS = types.Int64Value(ins.BootTimeUS)
 
 	data.Args, diags = types.ListValueFrom(ctx, types.StringType, ins.Args)
 	resp.Diagnostics.Append(diags...)
 
 	data.Env, diags = types.MapValueFrom(ctx, types.StringType, ins.Env)
+	resp.Diagnostics.Append(diags...)
+
+	if data.ServiceGroup == nil {
+		data.ServiceGroup = &svcGrpModel{}
+	}
+	data.ServiceGroup.UUID = types.StringValue(ins.ServiceGroup.UUID)
+	data.ServiceGroup.Name = types.StringValue(ins.ServiceGroup.Name)
+
+	netwIfaces := make([]netwIfaceModel, len(ins.NetworkInterfaces))
+	for i, net := range ins.NetworkInterfaces {
+		netwIfaces[i].UUID = types.StringValue(net.UUID)
+		netwIfaces[i].Name = types.StringValue(net.Name)
+		netwIfaces[i].PrivateIP = types.StringValue(net.PrivateIP)
+		netwIfaces[i].MAC = types.StringValue(net.MAC)
+	}
+	data.NetworkInterfaces, diags = types.ListValueFrom(ctx, netwIfaceModelType, netwIfaces)
 	resp.Diagnostics.Append(diags...)
 
 	// Save updated data into Terraform state
@@ -364,7 +436,7 @@ func (r *InstanceResource) Delete(ctx context.Context, req resource.DeleteReques
 		return
 	}
 
-	err := r.client.Delete(ctx, data.UUID.ValueString())
+	err := r.client.DeleteByUUID(ctx, data.UUID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Client Error",
