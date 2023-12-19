@@ -1,4 +1,4 @@
-## 0.1.2 (Unreleased)
+## 0.2.1 (Unreleased)
 
 BREAKING CHANGES:
 
@@ -9,6 +9,16 @@ FEATURES:
 ENHANCEMENTS:
 
 BUG FIXES:
+
+## 0.2.0 (December 19, 2023)
+
+BREAKING CHANGES:
+
+- The instance attributes `port`, `destination_port`, and `handlers` are now nested under `service_group.services`.
+
+ENHANCEMENTS:
+
+- Update to KraftCloud Go SDK v0.4.1.
 
 ## 0.1.1 (October 17, 2023)
 
