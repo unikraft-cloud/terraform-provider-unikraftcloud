@@ -2,7 +2,7 @@ module github.com/kraftcloud/terraform-provider-kraftcloud
 
 go 1.21
 
-require sdk.kraft.cloud v0.4.2
+require sdk.kraft.cloud v0.4.8
 
 require (
 	github.com/hashicorp/terraform-plugin-docs v0.18.0
@@ -31,7 +31,7 @@ require (
 	github.com/fatih/color v1.16.0 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
-	github.com/google/go-containerregistry v0.16.1 // indirect
+	github.com/google/go-containerregistry v0.19.0 // indirect
 	github.com/google/uuid v1.4.0 // indirect
 	github.com/hashicorp/cli v1.1.6 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
