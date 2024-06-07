@@ -54,7 +54,7 @@ jobs:
       - run: go build -v .
 
       - name: Run linters
-        uses: golangci/golangci-lint-action@v4
+        uses: golangci/golangci-lint-action@v6
         with:
           version: latest
           args: --out-format=colored-line-number
