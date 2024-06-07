@@ -178,7 +178,7 @@ func (d *InstanceDataSource) Read(ctx context.Context, req datasource.ReadReques
 		return
 	}
 
-	ins, err := d.client.GetByUUID(ctx, data.UUID.ValueString())
+	insRaw, err := d.client.Get(ctx, data.UUID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Client Error",
@@ -186,18 +186,21 @@ func (d *InstanceDataSource) Read(ctx context.Context, req datasource.ReadReques
 		)
 		return
 	}
+	ins := insRaw.Data.Entries[0]
 
 	var diags diag.Diagnostics
 
 	data.Name = types.StringValue(ins.Name)
-	data.FQDN = types.StringValue(ins.FQDN)
+	if ins.ServiceGroup != nil && len(ins.ServiceGroup.Domains) > 0 {
+		data.FQDN = types.StringValue(ins.ServiceGroup.Domains[0].FQDN)
+	}
 	data.PrivateIP = types.StringValue(ins.PrivateIP)
 	data.PrivateFQDN = types.StringValue(ins.PrivateFQDN)
-	data.State = types.StringValue(ins.State)
+	data.State = types.StringValue(string(ins.State))
 	data.CreatedAt = types.StringValue(ins.CreatedAt)
 	data.Image = types.StringValue(ins.Image)
 	data.MemoryMB = types.Int64Value(int64(ins.MemoryMB))
-	data.BootTimeUS = types.Int64Value(ins.BootTimeUS)
+	data.BootTimeUS = types.Int64Value(int64(ins.BootTimeUs))
 
 	data.Args, diags = types.ListValueFrom(ctx, types.StringType, ins.Args)
 	resp.Diagnostics.Append(diags...)
@@ -205,24 +208,30 @@ func (d *InstanceDataSource) Read(ctx context.Context, req datasource.ReadReques
 	data.Env, diags = types.MapValueFrom(ctx, types.StringType, ins.Env)
 	resp.Diagnostics.Append(diags...)
 
-	data.ServiceGroup = &svcGrpModel{
-		UUID:     types.StringValue(ins.ServiceGroup.UUID),
-		Name:     types.StringValue(ins.ServiceGroup.Name),
-		Services: make([]svcModel, len(ins.ServiceGroup.Services)),
-	}
-	for i, svc := range ins.ServiceGroup.Services {
-		data.ServiceGroup.Services[i] = svcModel{
-			Port:            types.Int64Value(int64(svc.Port)),
-			DestinationPort: types.Int64Value(int64(svc.DestinationPort)),
+	if ins.ServiceGroup != nil {
+		data.ServiceGroup = &svcGrpModel{
+			UUID:     types.StringValue(ins.ServiceGroup.UUID),
+			Name:     types.StringValue(ins.ServiceGroup.Name),
+			Services: make([]svcModel, len(ins.ServiceGroup.Domains)),
 		}
-		data.ServiceGroup.Services[i].Handlers, diags = types.SetValueFrom(ctx, types.StringType, svc.Handlers)
-		resp.Diagnostics.Append(diags...)
+	} else {
+		data.ServiceGroup = &svcGrpModel{}
 	}
+
+	// TODO(craciunoiuc): Find out how this should be accessed now
+	// for i, svc := range ins.ServiceGroup.Domains {
+	// 	data.ServiceGroup.Services[i] = svcModel{
+	// 		Port:            types.Int64Value(int64(svc.Port)),
+	// 		DestinationPort: types.Int64Value(int64(svc.DestinationPort)),
+	// 	}
+	// 	data.ServiceGroup.Services[i].Handlers, diags = types.SetValueFrom(ctx, types.StringType, svc.Handlers)
+	// 	resp.Diagnostics.Append(diags...)
+	// }
 
 	netwIfaces := make([]netwIfaceModel, len(ins.NetworkInterfaces))
 	for i, net := range ins.NetworkInterfaces {
 		netwIfaces[i].UUID = types.StringValue(net.UUID)
-		netwIfaces[i].Name = types.StringValue(net.Name)
+		netwIfaces[i].Name = types.StringValue(net.UUID) // No name in the API response
 		netwIfaces[i].PrivateIP = types.StringValue(net.PrivateIP)
 		netwIfaces[i].MAC = types.StringValue(net.MAC)
 	}
