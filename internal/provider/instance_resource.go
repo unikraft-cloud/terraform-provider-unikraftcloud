@@ -243,13 +243,13 @@ func (r *InstanceResource) Create(ctx context.Context, req resource.CreateReques
 		data.MemoryMB = types.Int64Value(128)
 	}
 
-	in := instances.CreateInstanceRequest{
+	in := instances.CreateRequest{
 		Image:    data.Image.ValueString(),
-		MemoryMB: data.MemoryMB.ValueInt64(),
-		ServiceGroup: instances.CreateInstanceServiceGroupRequest{
-			Services: make([]services.Service, len(data.ServiceGroup.Services)),
+		MemoryMB: ptr(int(data.MemoryMB.ValueInt64())),
+		ServiceGroup: &instances.CreateRequestServiceGroup{
+			Services: make([]services.CreateRequestService, len(data.ServiceGroup.Services)),
 		},
-		Autostart: data.Autostart.ValueBool(),
+		Autostart: ptr(data.Autostart.ValueBool()),
 	}
 
 	argVals := make([]types.String, 0, len(data.Args.Elements()))
@@ -261,13 +261,13 @@ func (r *InstanceResource) Create(ctx context.Context, req resource.CreateReques
 	for i, svc := range data.ServiceGroup.Services {
 		in.ServiceGroup.Services[i].Port = int(svc.Port.ValueInt64())
 
-		in.ServiceGroup.Services[i].DestinationPort = int(svc.DestinationPort.ValueInt64())
+		in.ServiceGroup.Services[i].DestinationPort = ptr(int(svc.DestinationPort.ValueInt64()))
 		// TODO(antoineco): the SDK should be sending a null when this is unset,
 		// but currently sends 0 instead, which is invalid.
 		// Set a default client-side for now until this is addressed.
 		if svc.DestinationPort.IsUnknown() || svc.DestinationPort.IsNull() {
 			data.ServiceGroup.Services[i].DestinationPort = svc.Port
-			in.ServiceGroup.Services[i].DestinationPort = int(svc.Port.ValueInt64())
+			in.ServiceGroup.Services[i].DestinationPort = ptr(int(svc.Port.ValueInt64()))
 		}
 
 		if !svc.Handlers.IsUnknown() {
@@ -283,7 +283,7 @@ func (r *InstanceResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	ins, err := r.client.Create(ctx, in)
+	insRaw, err := r.client.Create(ctx, in)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Client Error",
@@ -291,15 +291,18 @@ func (r *InstanceResource) Create(ctx context.Context, req resource.CreateReques
 		)
 		return
 	}
+	ins := insRaw.Data.Entries[0]
 
 	data.UUID = types.StringValue(ins.UUID)
 	data.Name = types.StringValue(ins.Name)
-	data.FQDN = types.StringValue(ins.FQDN)
+	if ins.ServiceGroup != nil && len(ins.ServiceGroup.Domains) > 0 {
+		data.FQDN = types.StringValue(ins.ServiceGroup.Domains[0].FQDN)
+	}
 	data.PrivateIP = types.StringValue(ins.PrivateIP)
 	data.PrivateFQDN = types.StringValue(ins.PrivateFQDN)
 
 	// Not all attributes are returned by CreateInstance
-	ins, err = r.client.GetByUUID(ctx, data.UUID.ValueString())
+	insRawFull, err := r.client.Get(ctx, data.UUID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Client Error",
@@ -307,6 +310,7 @@ func (r *InstanceResource) Create(ctx context.Context, req resource.CreateReques
 		)
 		return
 	}
+	insFull := insRawFull.Data.Entries[0]
 
 	var diags diag.Diagnostics
 
@@ -319,24 +323,30 @@ func (r *InstanceResource) Create(ctx context.Context, req resource.CreateReques
 	//   When applying changes to kraftcloud_instance.xyz, provider produced an unexpected new value: .image:
 	//     was cty.StringVal("myimage:latest"), but now cty.StringVal("myimage@sha256:18a381f0062...").
 	//
-	data.State = types.StringValue(ins.State)
-	data.CreatedAt = types.StringValue(ins.CreatedAt)
-	data.MemoryMB = types.Int64Value(int64(ins.MemoryMB))
-	data.BootTimeUS = types.Int64Value(ins.BootTimeUS)
+	data.State = types.StringValue(string(insFull.State))
+	data.CreatedAt = types.StringValue(insFull.CreatedAt)
+	data.MemoryMB = types.Int64Value(int64(insFull.MemoryMB))
+	data.BootTimeUS = types.Int64Value(int64(insFull.BootTimeUs))
 
-	data.Args, diags = types.ListValueFrom(ctx, types.StringType, ins.Args)
+	data.Args, diags = types.ListValueFrom(ctx, types.StringType, insFull.Args)
 	resp.Diagnostics.Append(diags...)
 
-	data.Env, diags = types.MapValueFrom(ctx, types.StringType, ins.Env)
+	data.Env, diags = types.MapValueFrom(ctx, types.StringType, insFull.Env)
 	resp.Diagnostics.Append(diags...)
 
-	data.ServiceGroup.UUID = types.StringValue(ins.ServiceGroup.UUID)
-	data.ServiceGroup.Name = types.StringValue(ins.ServiceGroup.Name)
+	if data.ServiceGroup == nil {
+		data.ServiceGroup = &svcGrpModel{}
+	}
 
-	netwIfaces := make([]netwIfaceModel, len(ins.NetworkInterfaces))
-	for i, net := range ins.NetworkInterfaces {
+	if insFull.ServiceGroup != nil {
+		data.ServiceGroup.UUID = types.StringValue(insFull.ServiceGroup.UUID)
+		data.ServiceGroup.Name = types.StringValue(insFull.ServiceGroup.Name)
+	}
+
+	netwIfaces := make([]netwIfaceModel, len(insFull.NetworkInterfaces))
+	for i, net := range insFull.NetworkInterfaces {
 		netwIfaces[i].UUID = types.StringValue(net.UUID)
-		netwIfaces[i].Name = types.StringValue(net.Name)
+		netwIfaces[i].Name = types.StringValue(insFull.Name)
 		netwIfaces[i].PrivateIP = types.StringValue(net.PrivateIP)
 		netwIfaces[i].MAC = types.StringValue(net.MAC)
 	}
@@ -357,7 +367,7 @@ func (r *InstanceResource) Read(ctx context.Context, req resource.ReadRequest, r
 		return
 	}
 
-	ins, err := r.client.GetByUUID(ctx, data.UUID.ValueString())
+	insRaw, err := r.client.Get(ctx, data.UUID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Client Error",
@@ -365,6 +375,7 @@ func (r *InstanceResource) Read(ctx context.Context, req resource.ReadRequest, r
 		)
 		return
 	}
+	ins := insRaw.Data.Entries[0]
 
 	var diags diag.Diagnostics
 
@@ -383,13 +394,15 @@ func (r *InstanceResource) Read(ctx context.Context, req resource.ReadRequest, r
 		data.Image = types.StringValue(ins.Image)
 	}
 	data.Name = types.StringValue(ins.Name)
-	data.FQDN = types.StringValue(ins.FQDN)
+	if ins.ServiceGroup != nil && len(ins.ServiceGroup.Domains) > 0 {
+		data.FQDN = types.StringValue(ins.ServiceGroup.Domains[0].FQDN)
+	}
 	data.PrivateIP = types.StringValue(ins.PrivateIP)
 	data.PrivateFQDN = types.StringValue(ins.PrivateFQDN)
-	data.State = types.StringValue(ins.State)
+	data.State = types.StringValue(string(ins.State))
 	data.CreatedAt = types.StringValue(ins.CreatedAt)
 	data.MemoryMB = types.Int64Value(int64(ins.MemoryMB))
-	data.BootTimeUS = types.Int64Value(ins.BootTimeUS)
+	data.BootTimeUS = types.Int64Value(int64(ins.BootTimeUs))
 
 	data.Args, diags = types.ListValueFrom(ctx, types.StringType, ins.Args)
 	resp.Diagnostics.Append(diags...)
@@ -400,13 +413,16 @@ func (r *InstanceResource) Read(ctx context.Context, req resource.ReadRequest, r
 	if data.ServiceGroup == nil {
 		data.ServiceGroup = &svcGrpModel{}
 	}
-	data.ServiceGroup.UUID = types.StringValue(ins.ServiceGroup.UUID)
-	data.ServiceGroup.Name = types.StringValue(ins.ServiceGroup.Name)
+
+	if ins.ServiceGroup != nil {
+		data.ServiceGroup.UUID = types.StringValue(ins.ServiceGroup.UUID)
+		data.ServiceGroup.Name = types.StringValue(ins.ServiceGroup.Name)
+	}
 
 	netwIfaces := make([]netwIfaceModel, len(ins.NetworkInterfaces))
 	for i, net := range ins.NetworkInterfaces {
 		netwIfaces[i].UUID = types.StringValue(net.UUID)
-		netwIfaces[i].Name = types.StringValue(net.Name)
+		netwIfaces[i].Name = types.StringValue(net.UUID) // No name in the response
 		netwIfaces[i].PrivateIP = types.StringValue(net.PrivateIP)
 		netwIfaces[i].MAC = types.StringValue(net.MAC)
 	}
@@ -436,7 +452,7 @@ func (r *InstanceResource) Delete(ctx context.Context, req resource.DeleteReques
 		return
 	}
 
-	err := r.client.DeleteByUUID(ctx, data.UUID.ValueString())
+	_, err := r.client.Delete(ctx, data.UUID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Client Error",
@@ -450,3 +466,5 @@ func (r *InstanceResource) Delete(ctx context.Context, req resource.DeleteReques
 func (r *InstanceResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("uuid"), req, resp)
 }
+
+func ptr[T comparable](v T) *T { return &v }

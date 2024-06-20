@@ -122,10 +122,10 @@ func (d *InstancesDataSource) Read(ctx context.Context, req datasource.ReadReque
 			return
 		}
 
-		filteredInstances := instances[:0]
+		filteredInstances := instances.Data.Entries[:0]
 
-		for _, ins := range instances {
-			insStat, err := d.client.GetByUUID(ctx, ins.UUID)
+		for _, ins := range instances.Data.Entries {
+			insStat, err := d.client.Get(ctx, ins.UUID)
 			if err != nil {
 				resp.Diagnostics.AddError(
 					"Client Error",
@@ -137,18 +137,18 @@ func (d *InstancesDataSource) Read(ctx context.Context, req datasource.ReadReque
 			// the number of possible states is small enough that iterating
 			// them for every instance is reasonably cheap
 			for _, st := range stateVals {
-				if insStat.State == st.ValueString() {
+				if insStat.Status == st.ValueString() {
 					filteredInstances = append(filteredInstances, ins)
 					break
 				}
 			}
 		}
 
-		instances = filteredInstances
+		instances.Data.Entries = filteredInstances
 	}
 
-	uuids := make([]attr.Value, 0, len(instances))
-	for _, ins := range instances {
+	uuids := make([]attr.Value, 0, len(instances.Data.Entries))
+	for _, ins := range instances.Data.Entries {
 		uuids = append(uuids, types.StringValue(ins.UUID))
 	}
 	var diags diag.Diagnostics
