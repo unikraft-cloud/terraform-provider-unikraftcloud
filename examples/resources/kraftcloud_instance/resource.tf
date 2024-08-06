@@ -1,4 +1,4 @@
-resource "kraftcloud_instance" "example" {
+resource "unikraft-cloud_instance" "example" {
   image     = "myuser.unikraft.io/myapp:latest"
   memory_mb = 64
   autostart = true

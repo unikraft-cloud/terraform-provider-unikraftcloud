@@ -12,7 +12,7 @@ import (
 
 func TestAccInstanceDataSource(t *testing.T) {
 	// Pre-existing "golden" instance, used exclusively for acceptance testing.
-	// User: robot$acotten.unikraft.io.users.kraftcloud
+	// User: robot$acotten.unikraft.io.users.unikraft-cloud
 	const (
 		tUUID     = "3ce45bbf-5921-4590-ba1f-611da83871a0"
 		tState    = "stopped"
@@ -33,15 +33,15 @@ func TestAccInstanceDataSource(t *testing.T) {
 			{
 				Config: testAccInstanceDataSourceConfig(tUUID),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("data.kraftcloud_instance.test", "uuid", tUUID),
-					resource.TestCheckResourceAttr("data.kraftcloud_instance.test", "state", tState),
-					resource.TestCheckResourceAttr("data.kraftcloud_instance.test", "image", tImg),
-					resource.TestCheckResourceAttr("data.kraftcloud_instance.test", "memory_mb", tMem),
-					resource.TestCheckResourceAttr("data.kraftcloud_instance.test", "created_at", tCreated),
-					resource.TestCheckResourceAttr("data.kraftcloud_instance.test", "fqdn", tFQDN),
-					resource.TestCheckResourceAttr("data.kraftcloud_instance.test", "private_ip", tPrivIP),
-					resource.TestCheckResourceAttr("data.kraftcloud_instance.test", "service_group.uuid", tSvcGrp),
-					resource.TestCheckResourceAttr("data.kraftcloud_instance.test", "network_interfaces.0.uuid", tNetIface),
+					resource.TestCheckResourceAttr("data.unikraft-cloud_instance.test", "uuid", tUUID),
+					resource.TestCheckResourceAttr("data.unikraft-cloud_instance.test", "state", tState),
+					resource.TestCheckResourceAttr("data.unikraft-cloud_instance.test", "image", tImg),
+					resource.TestCheckResourceAttr("data.unikraft-cloud_instance.test", "memory_mb", tMem),
+					resource.TestCheckResourceAttr("data.unikraft-cloud_instance.test", "created_at", tCreated),
+					resource.TestCheckResourceAttr("data.unikraft-cloud_instance.test", "fqdn", tFQDN),
+					resource.TestCheckResourceAttr("data.unikraft-cloud_instance.test", "private_ip", tPrivIP),
+					resource.TestCheckResourceAttr("data.unikraft-cloud_instance.test", "service_group.uuid", tSvcGrp),
+					resource.TestCheckResourceAttr("data.unikraft-cloud_instance.test", "network_interfaces.0.uuid", tNetIface),
 				),
 			},
 		},
@@ -50,7 +50,7 @@ func TestAccInstanceDataSource(t *testing.T) {
 
 func testAccInstanceDataSourceConfig(uuidAttr string) string {
 	return fmt.Sprintf(`
-data "kraftcloud_instance" "test" {
+data "unikraft-cloud_instance" "test" {
   uuid = %[1]q
 }
 `, uuidAttr)

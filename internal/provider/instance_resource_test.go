@@ -23,21 +23,21 @@ func TestAccInstanceResource(t *testing.T) {
 			{
 				Config: testAccInstanceResourceConfig(tImg, "http", 80),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet("kraftcloud_instance.test", "uuid"),
-					resource.TestCheckResourceAttr("kraftcloud_instance.test", "image", tImg),
-					resource.TestCheckResourceAttr("kraftcloud_instance.test", "service_group.services.0.port", "80"),
-					resource.TestCheckResourceAttr("kraftcloud_instance.test", "service_group.services.0.handlers.0", "http"),
-					resource.TestCheckResourceAttr("kraftcloud_instance.test", "memory_mb", "128"),                                // defaulted
-					resource.TestCheckResourceAttr("kraftcloud_instance.test", "service_group.services.0.destination_port", "80"), // defaulted
+					resource.TestCheckResourceAttrSet("unikraft-cloud_instance.test", "uuid"),
+					resource.TestCheckResourceAttr("unikraft-cloud_instance.test", "image", tImg),
+					resource.TestCheckResourceAttr("unikraft-cloud_instance.test", "service_group.services.0.port", "80"),
+					resource.TestCheckResourceAttr("unikraft-cloud_instance.test", "service_group.services.0.handlers.0", "http"),
+					resource.TestCheckResourceAttr("unikraft-cloud_instance.test", "memory_mb", "128"),                                // defaulted
+					resource.TestCheckResourceAttr("unikraft-cloud_instance.test", "service_group.services.0.destination_port", "80"), // defaulted
 				),
 			},
 			// ImportState testing
 			{
-				ResourceName:                         "kraftcloud_instance.test",
+				ResourceName:                         "unikraft-cloud_instance.test",
 				ImportState:                          true,
 				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "uuid",
-				ImportStateIdFunc:                    instanceUUID("kraftcloud_instance.test"),
+				ImportStateIdFunc:                    instanceUUID("unikraft-cloud_instance.test"),
 				ImportStateVerifyIgnore: []string{
 					// not returned by GetByUUID()
 					"service_group.services",
@@ -49,8 +49,8 @@ func TestAccInstanceResource(t *testing.T) {
 			{
 				Config: testAccInstanceResourceConfig(tImg, "tls", 81),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("kraftcloud_instance.test", "service_group.services.0.port", "81"),
-					resource.TestCheckResourceAttr("kraftcloud_instance.test", "service_group.services.0.handlers.0", "tls"),
+					resource.TestCheckResourceAttr("unikraft-cloud_instance.test", "service_group.services.0.port", "81"),
+					resource.TestCheckResourceAttr("unikraft-cloud_instance.test", "service_group.services.0.handlers.0", "tls"),
 				),
 			},
 			// Delete testing automatically occurs in TestCase
@@ -60,7 +60,7 @@ func TestAccInstanceResource(t *testing.T) {
 
 func testAccInstanceResourceConfig(imageAttr, handler string, portAttr uint16) string {
 	return fmt.Sprintf(`
-resource "kraftcloud_instance" "test" {
+resource "unikraft-cloud_instance" "test" {
   image = %[1]q
   service_group = {
     services = [

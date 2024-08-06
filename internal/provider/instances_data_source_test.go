@@ -12,7 +12,7 @@ import (
 
 func TestAccInstancesDataSource(t *testing.T) {
 	// Pre-existing "golden" instance, used exclusively for acceptance testing.
-	// User: robot$acotten.unikraft.io.users.kraftcloud
+	// User: robot$acotten.unikraft.io.users.unikraft-cloud
 	const tUUID = "3ce45bbf-5921-4590-ba1f-611da83871a0"
 
 	resource.Test(t, resource.TestCase{
@@ -21,10 +21,10 @@ func TestAccInstancesDataSource(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Read testing
 			{
-				Config: `data "kraftcloud_instances" "test" {}`,
+				Config: `data "unikraft-cloud_instances" "test" {}`,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("data.kraftcloud_instances.test", "uuids.#", "1"),
-					resource.TestCheckResourceAttr("data.kraftcloud_instances.test", "uuids.0", tUUID),
+					resource.TestCheckResourceAttr("data.unikraft-cloud_instances.test", "uuids.#", "1"),
+					resource.TestCheckResourceAttr("data.unikraft-cloud_instances.test", "uuids.0", tUUID),
 				),
 			},
 		},
@@ -38,8 +38,8 @@ func TestAccInstancesDataSource(t *testing.T) {
 			{
 				Config: testAccInstancesDataSourceConfig(`["stopped", "stopping"]`),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("data.kraftcloud_instances.test", "uuids.#", "1"),
-					resource.TestCheckResourceAttr("data.kraftcloud_instances.test", "uuids.0", tUUID),
+					resource.TestCheckResourceAttr("data.unikraft-cloud_instances.test", "uuids.#", "1"),
+					resource.TestCheckResourceAttr("data.unikraft-cloud_instances.test", "uuids.0", tUUID),
 				),
 			},
 		},
@@ -53,7 +53,7 @@ func TestAccInstancesDataSource(t *testing.T) {
 			{
 				Config: testAccInstancesDataSourceConfig(`["running", "starting"]`),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("data.kraftcloud_instances.test", "uuids.#", "0"),
+					resource.TestCheckResourceAttr("data.unikraft-cloud_instances.test", "uuids.#", "0"),
 				),
 			},
 		},
@@ -62,7 +62,7 @@ func TestAccInstancesDataSource(t *testing.T) {
 
 func testAccInstancesDataSourceConfig(statesAttr string) string {
 	return fmt.Sprintf(`
-data "kraftcloud_instances" "test" {
+data "unikraft-cloud_instances" "test" {
   states = %[1]s
 }
 `, statesAttr)

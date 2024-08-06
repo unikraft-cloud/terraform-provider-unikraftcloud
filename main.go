@@ -10,7 +10,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 
-	"github.com/kraftcloud/terraform-provider-kraftcloud/internal/provider"
+	"github.com/unikraft-cloud/terraform-provider-unikraft-cloud/internal/provider"
 )
 
 // Run "go generate" to format example terraform files and generate the docs for the registry/website
@@ -35,7 +35,7 @@ func main() {
 	flag.Parse()
 
 	opts := providerserver.ServeOpts{
-		Address: "registry.terraform.io/kraftcloud/kraftcloud",
+		Address: "registry.terraform.io/unikraft-cloud/unikraft-cloud",
 		Debug:   debug,
 	}
 

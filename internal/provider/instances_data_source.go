@@ -47,7 +47,7 @@ func (d *InstancesDataSource) Metadata(ctx context.Context, req datasource.Metad
 func (d *InstancesDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "Provides UUIDs of existing KraftCloud instances.",
+		MarkdownDescription: "Provides UUIDs of existing Unikraft Cloud instances.",
 
 		Attributes: map[string]schema.Attribute{
 			"states": schema.SetAttribute{
