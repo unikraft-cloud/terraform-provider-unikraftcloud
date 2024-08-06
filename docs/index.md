@@ -6,7 +6,7 @@ description: |-
   Manage unikernel instances on Unikraft Cloud.
 ---
 
-# Unikraft Cloud Provider
+# unikraft-cloud Provider
 
 Use the Unikraft Cloud provider to manage [unikernel instances][kc-instances] on
 Unikraft Cloud.

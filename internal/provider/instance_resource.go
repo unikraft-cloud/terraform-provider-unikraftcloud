@@ -176,6 +176,35 @@ func (r *InstanceResource) Schema(ctx context.Context, req resource.SchemaReques
 							},
 						},
 					},
+					"domains": schema.ListNestedAttribute{
+						Optional: true,
+						NestedObject: schema.NestedAttributeObject{
+							Attributes: map[string]schema.Attribute{
+								"name": schema.StringAttribute{
+									Required: true,
+								},
+								"fqdn": schema.StringAttribute{
+									Computed: true,
+								},
+								"certificate": schema.MapNestedAttribute{
+									Optional: true,
+									NestedObject: schema.NestedAttributeObject{
+										Attributes: map[string]schema.Attribute{
+											"uuid": schema.StringAttribute{
+												Computed: true,
+											},
+											"name": schema.StringAttribute{
+												Computed: true,
+											},
+											"state": schema.StringAttribute{
+												Computed: true,
+											},
+										},
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 			"network_interfaces": schema.ListNestedAttribute{
