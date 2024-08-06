@@ -55,7 +55,7 @@ func (d *InstanceDataSource) Metadata(ctx context.Context, req datasource.Metada
 func (d *InstanceDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "Provides state information about a KraftCloud instance.",
+		MarkdownDescription: "Provides state information about a Unikraft Cloud instance.",
 
 		Attributes: map[string]schema.Attribute{
 			"uuid": schema.StringAttribute{

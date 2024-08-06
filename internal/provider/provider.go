@@ -14,46 +14,46 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
-	kraftcloud "sdk.kraft.cloud"
+	unikraftcloud "sdk.kraft.cloud"
 	"sdk.kraft.cloud/client"
 )
 
 func New(version string) func() provider.Provider {
 	return func() provider.Provider {
-		return &KraftCloudProvider{
+		return &UnikraftCloudProvider{
 			version: version,
 		}
 	}
 }
 
-// KraftCloudProvider defines the provider implementation.
-type KraftCloudProvider struct {
+// UnikraftCloudProvider defines the provider implementation.
+type UnikraftCloudProvider struct {
 	// version is set to the provider version on release, "dev" when the
 	// provider is built and ran locally, and "test" when running acceptance
 	// testing.
 	version string
 }
 
-// Ensure KraftCloudProvider satisfies various provider interfaces.
-var _ provider.Provider = &KraftCloudProvider{}
+// Ensure UnikraftCloudProvider satisfies various provider interfaces.
+var _ provider.Provider = &UnikraftCloudProvider{}
 
-// KraftCloudModel describes the provider data model.
-type KraftCloudModel struct {
+// UnikraftCloudModel describes the provider data model.
+type UnikraftCloudModel struct {
 	Metro types.String `tfsdk:"metro"`
 	Token types.String `tfsdk:"token"`
 }
 
 // Metadata implements provider.Provider.
-func (p *KraftCloudProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
-	resp.TypeName = "kraftcloud"
+func (p *UnikraftCloudProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
+	resp.TypeName = "unikraft-cloud"
 	resp.Version = p.version
 }
 
 // Schema implements provider.Provider.
-func (p *KraftCloudProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
+func (p *UnikraftCloudProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "Manage unikernel instances on KraftCloud.",
+		MarkdownDescription: "Manage unikernel instances on Unikraft Cloud.",
 
 		Attributes: map[string]schema.Attribute{
 			"metro": schema.StringAttribute{
@@ -70,8 +70,8 @@ func (p *KraftCloudProvider) Schema(ctx context.Context, req provider.SchemaRequ
 }
 
 // Configure implements provider.Provider.
-func (p *KraftCloudProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
-	var data KraftCloudModel
+func (p *UnikraftCloudProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
+	var data UnikraftCloudModel
 
 	// Retrieve provider data from configuration
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
@@ -85,18 +85,18 @@ func (p *KraftCloudProvider) Configure(ctx context.Context, req provider.Configu
 	if data.Metro.IsUnknown() {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("metro"),
-			"Unknown KraftCloud API Metro",
-			"The provider cannot create the KraftCloud API client as there is an unknown configuration value for the KraftCloud API metro. "+
-				"Either target apply the source of the value first, set the value statically in the configuration, or use the KRAFTCLOUD_METRO environment variable.",
+			"Unknown Unikraft Cloud API Metro",
+			"The provider cannot create the Unikraft Cloud API client as there is an unknown configuration value for the Unikraft Cloud API metro. "+
+				"Either target apply the source of the value first, set the value statically in the configuration, or use the UKC_METRO environment variable.",
 		)
 	}
 
 	if data.Token.IsUnknown() {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("token"),
-			"Unknown KraftCloud API Token",
-			"The provider cannot create the KraftCloud API client as there is an unknown configuration value for the KraftCloud API token. "+
-				"Either target apply the source of the value first, set the value statically in the configuration, or use the KRAFTCLOUD_TOKEN environment variable.",
+			"Unknown Unikraft Cloud API Token",
+			"The provider cannot create the Unikraft Cloud API client as there is an unknown configuration value for the Unikraft Cloud API token. "+
+				"Either target apply the source of the value first, set the value statically in the configuration, or use the UKC_TOKEN environment variable.",
 		)
 	}
 
@@ -107,7 +107,7 @@ func (p *KraftCloudProvider) Configure(ctx context.Context, req provider.Configu
 	// Consider values from environment variables, but override with explicit
 	// configuration values when provided.
 
-	metro := os.Getenv("KRAFTCLOUD_METRO")
+	metro := os.Getenv("UKC_METRO")
 	if metro == "" {
 		metro = client.DefaultMetro
 	}
@@ -115,7 +115,7 @@ func (p *KraftCloudProvider) Configure(ctx context.Context, req provider.Configu
 		metro = data.Metro.ValueString()
 	}
 
-	token := os.Getenv("KRAFTCLOUD_TOKEN")
+	token := os.Getenv("UKC_TOKEN")
 	if !data.Token.IsNull() {
 		token = data.Token.ValueString()
 	}
@@ -126,18 +126,18 @@ func (p *KraftCloudProvider) Configure(ctx context.Context, req provider.Configu
 	if metro == "" {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("metro"),
-			"Missing KraftCloud API Metro",
-			"The provider cannot create the KraftCloud API client as there is a missing or empty configuration value for the KraftCloud API metro. "+
-				"Set the metro value in the configuration or use the KRAFTCLOUD_METRO environment variable.",
+			"Missing Unikraft Cloud API Metro",
+			"The provider cannot create the Unikraft Cloud API client as there is a missing or empty configuration value for the Unikraft Cloud API metro. "+
+				"Set the metro value in the configuration or use the UKC_METRO environment variable.",
 		)
 	}
 
 	if token == "" {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("token"),
-			"Missing KraftCloud API Token",
-			"The provider cannot create the KraftCloud API client as there is a missing or empty configuration value for the KraftCloud API token. "+
-				"Set the token value in the configuration or use the KRAFTCLOUD_TOKEN environment variable.",
+			"Missing Unikraft Cloud API Token",
+			"The provider cannot create the Unikraft Cloud API client as there is a missing or empty configuration value for the Unikraft Cloud API token. "+
+				"Set the token value in the configuration or use the UKC_TOKEN environment variable.",
 		)
 	}
 
@@ -146,9 +146,9 @@ func (p *KraftCloudProvider) Configure(ctx context.Context, req provider.Configu
 	}
 
 	// Client configuration for data sources and resources
-	client := kraftcloud.NewClient(
-		kraftcloud.WithDefaultMetro(metro),
-		kraftcloud.WithToken(token),
+	client := unikraftcloud.NewClient(
+		unikraftcloud.WithDefaultMetro(metro),
+		unikraftcloud.WithToken(token),
 	)
 
 	resp.DataSourceData = client.Instances()
@@ -156,14 +156,14 @@ func (p *KraftCloudProvider) Configure(ctx context.Context, req provider.Configu
 }
 
 // Resources describes the provider data model.
-func (p *KraftCloudProvider) Resources(ctx context.Context) []func() resource.Resource {
+func (p *UnikraftCloudProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewInstanceResource,
 	}
 }
 
 // DataSources describes the provider data model.
-func (p *KraftCloudProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
+func (p *UnikraftCloudProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
 		NewInstanceDataSource,
 		NewInstancesDataSource,

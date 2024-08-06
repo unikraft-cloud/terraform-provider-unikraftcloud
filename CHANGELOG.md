@@ -10,6 +10,12 @@ ENHANCEMENTS:
 
 BUG FIXES:
 
+## 0.2.1 (August 06, 2024)
+
+ENHANCEMENTS:
+
+- Update to Unikraft Cloud Go SDK v0.5.9.
+
 ## 0.2.0 (December 19, 2023)
 
 BREAKING CHANGES:
@@ -18,7 +24,7 @@ BREAKING CHANGES:
 
 ENHANCEMENTS:
 
-- Update to KraftCloud Go SDK v0.4.1.
+- Update to Unikraft Cloud Go SDK v0.4.1.
 
 ## 0.1.1 (October 17, 2023)
 

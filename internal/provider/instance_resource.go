@@ -70,7 +70,7 @@ func (r *InstanceResource) Metadata(ctx context.Context, req resource.MetadataRe
 func (r *InstanceResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "Allows the creation of KraftCloud instances.",
+		MarkdownDescription: "Allows the creation of Unikraft Cloud instances.",
 
 		Attributes: map[string]schema.Attribute{
 			"image": schema.StringAttribute{
@@ -113,9 +113,6 @@ func (r *InstanceResource) Schema(ctx context.Context, req resource.SchemaReques
 				},
 			},
 			"name": schema.StringAttribute{
-				Computed: true,
-			},
-			"fqdn": schema.StringAttribute{
 				Computed: true,
 			},
 			"private_ip": schema.StringAttribute{
@@ -174,6 +171,35 @@ func (r *InstanceResource) Schema(ctx context.Context, req resource.SchemaReques
 									PlanModifiers: []planmodifier.Set{
 										setplanmodifier.RequiresReplaceIfConfigured(),
 										setplanmodifier.UseStateForUnknown(),
+									},
+								},
+							},
+						},
+					},
+					"domains": schema.ListNestedAttribute{
+						Optional: true,
+						NestedObject: schema.NestedAttributeObject{
+							Attributes: map[string]schema.Attribute{
+								"name": schema.StringAttribute{
+									Required: true,
+								},
+								"fqdn": schema.StringAttribute{
+									Computed: true,
+								},
+								"certificate": schema.MapNestedAttribute{
+									Optional: true,
+									NestedObject: schema.NestedAttributeObject{
+										Attributes: map[string]schema.Attribute{
+											"uuid": schema.StringAttribute{
+												Computed: true,
+											},
+											"name": schema.StringAttribute{
+												Computed: true,
+											},
+											"state": schema.StringAttribute{
+												Computed: true,
+											},
+										},
 									},
 								},
 							},
@@ -315,12 +341,12 @@ func (r *InstanceResource) Create(ctx context.Context, req resource.CreateReques
 	var diags diag.Diagnostics
 
 	// NOTE(antoineco): although the Image attribute may be transformed by
-	// KraftCloud (e.g. replace the tag with a digest), we must not update the
+	// Unikraft Cloud (e.g. replace the tag with a digest), we must not update the
 	// value read from the schema, otherwise Terraform fails to apply with the
 	// following error:
 	//
 	//   Error: Provider produced inconsistent result after apply
-	//   When applying changes to kraftcloud_instance.xyz, provider produced an unexpected new value: .image:
+	//   When applying changes to unikraft-cloud_instance.xyz, provider produced an unexpected new value: .image:
 	//     was cty.StringVal("myimage:latest"), but now cty.StringVal("myimage@sha256:18a381f0062...").
 	//
 	data.State = types.StringValue(string(insFull.State))
@@ -380,12 +406,12 @@ func (r *InstanceResource) Read(ctx context.Context, req resource.ReadRequest, r
 	var diags diag.Diagnostics
 
 	// NOTE(antoineco): although the Image attribute may be transformed by
-	// KraftCloud (e.g. replace the tag with a digest), we must not update the
+	// Unikraft Cloud (e.g. replace the tag with a digest), we must not update the
 	// value read from the schema, otherwise Terraform fails to apply with the
 	// following error:
 	//
 	//   Error: Provider produced inconsistent result after apply
-	//   When applying changes to kraftcloud_instance.xyz, provider produced an unexpected new value: .image:
+	//   When applying changes to unikraft-cloud_instance.xyz, provider produced an unexpected new value: .image:
 	//     was cty.StringVal("myimage:latest"), but now cty.StringVal("myimage@sha256:18a381f0062...").
 	//
 	// However, we must still ensure that the Image attribute is populated by

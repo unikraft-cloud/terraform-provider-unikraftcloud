@@ -1,14 +1,14 @@
 <a href="https://kraft.cloud">
-    <img src="https://avatars3.githubusercontent.com/kraftcloud" alt="KraftCloud logo" title="KraftCloud" align="right" height="50" />
+    <img src="https://avatars3.githubusercontent.com/unikraft-cloud" alt="Unikraft Cloud logo" title="Unikraft Cloud" align="right" height="50" />
 </a>
 
-# Terraform Provider for KraftCloud
+# Terraform Provider for Unikraft Cloud
 
-The KraftCloud provider allows Terraform to manage unikernel instances on KraftCloud.
+The Unikraft Cloud provider allows Terraform to manage unikernel instances on Unikraft Cloud.
 
 ## Usage
 
-Please refer to the [`kraftcloud` provider documentation][tfreg-docs] in the Terraform Registry.
+Please refer to the [`unikraft-cloud` provider documentation][tfreg-docs] in the Terraform Registry.
 
 ## Development
 
@@ -35,7 +35,7 @@ provider_installation {
 
   dev_overrides {
       # The value is the path of $GOBIN (or $GOPATH/bin)
-      "kraft.cloud/dev/kraftcloud" = "/home/myuser/go/bin"
+      "unikraft.cloud/dev/unikraft-cloud" = "/home/myuser/go/bin"
   }
 
   # For all other providers, install them directly from their origin provider
@@ -46,18 +46,18 @@ provider_installation {
 ```
 
 > [!NOTE]
-> We deliberately use the provider address `kraft.cloud/dev/kraftcloud` instead of
-> `registry.terraform.io/kraftcloud/kraftcloud` in a development context. This allows switching more conveniently
+> We deliberately use the provider address `unikraft.cloud/dev/unikraft-cloud` instead of
+> `registry.terraform.io/unikraft-cloud/unikraft-cloud` in a development context. This allows switching more conveniently
 > between the local development build and the release build of this provider.
 
-Terraform will now resolve the provider source `kraft.cloud/dev/kraftcloud` to the local development build, instead of
+Terraform will now resolve the provider source `kraft.cloud/dev/unikraft-cloud` to the local development build, instead of
 the remote provider from the Terraform Registry, such as in the example below:
 
 ```hcl
 terraform {
   required_providers {
-    kraftcloud = {
-      source = "kraft.cloud/dev/kraftcloud"
+    unikraft-cloud = {
+      source = "kraft.cloud/dev/unikraft-cloud"
     }
   }
 }
@@ -66,9 +66,9 @@ terraform {
 ### Testing
 
 This provider includes [Acceptance Tests][tffw-acc] that perform lifecycle actions using real Terraform configurations,
-against real KraftCloud resources.
+against real Unikraft Cloud resources.
 
-**It is mandatory to have access to a KraftCloud account to execute these tests.**
+**It is mandatory to have access to a Unikraft Cloud account to execute these tests.**
 
 Acceptance tests are executed using the `testacc` Make target:
 
@@ -97,7 +97,7 @@ documentation pages:
 - Schema information from the provider, resources, and data sources
 
 
-[tfreg-docs]: https://registry.terraform.io/providers/kraftcloud/kraftcloud/latest/docs
+[tfreg-docs]: https://registry.terraform.io/providers/unikraft-cloud/unikraft-cloud/latest/docs
 
 [tffw-home]: https://developer.hashicorp.com/terraform/plugin/framework
 [tffw-tuto]: https://developer.hashicorp.com/terraform/tutorials/providers-plugin-framework
